@@ -1,18 +1,31 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import './App.css';
-import { login, register, fetchMe, checkAvailability, forgotPassword, resetPassword, clearSession } from './api/auth';
+import { login, register, fetchMe, checkAvailability, clearSession } from './api/auth';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
-import { validatePassword, PASSWORD_HINT, getPasswordRuleStatus } from './utils/passwordValidation';
+import ForgotPassword from './pages/ForgotPassword';
+import Solutions from './pages/Solutions';
+import Verify from './pages/Verify';
+import About from './pages/About';
+import Help from './pages/Help';
+import VerifyIdentity from './pages/VerifyIdentity';
+import Credentials from './pages/Credentials';
+import ConnectedServices from './pages/ConnectedServices';
+import Activity from './pages/Activity';
+import Documents from './pages/Documents';
+import Wallet from './pages/Wallet';
+import Notifications from './pages/Notifications';
+import AuthIllustration from './components/AuthIllustration';
+import PublicNav from './components/PublicNav';
+import { validatePassword, getPasswordRuleStatus } from './utils/passwordValidation';
 
 const AVAILABILITY_DEBOUNCE_MS = 400;
 
 function AuthScreen({
   mode,
-  setMode,
   identifier,
   setIdentifier,
   email,
@@ -32,287 +45,268 @@ function AuthScreen({
   loading,
   error,
   message,
-  showForgotPassword,
-  setShowForgotPassword,
-  forgotEmail,
-  setForgotEmail,
-  forgotLoading,
-  forgotMessage,
-  forgotError,
-  showResetPassword,
-  setShowResetPassword,
-  resetToken,
-  setResetToken,
-  resetNewPassword,
-  setResetNewPassword,
-  resetLoading,
-  resetMessage,
-  resetError,
   handleSubmit,
-  handleForgotPassword,
-  handleResetPassword,
   switchMode,
 }) {
-  const location = useLocation();
-  const isLoginPage = location.pathname === '/auth' || location.pathname === '/login';
+  const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <div className="auth-app">
-      <div className="auth-card">
-        <h1>{isLoginPage ? 'Welcome' : 'Authentication'}</h1>
-        <p className="auth-subtitle">Sign in or create an account</p>
+    <div className="auth-page">
+      <PublicNav />
 
-        <div className="auth-toggle">
-          <button
-            type="button"
-            className={mode === 'login' ? 'auth-toggle-button active' : 'auth-toggle-button'}
-            onClick={() => switchMode('login')}
-          >
-            Login
-          </button>
-          <button
-            type="button"
-            className={mode === 'register' ? 'auth-toggle-button active' : 'auth-toggle-button'}
-            onClick={() => switchMode('register')}
-          >
-            Register
-          </button>
-        </div>
+      <div className="auth-split">
+        <div className="auth-left">
+          <h1 className="auth-heading">
+            Secure Digital Identity
+            Verification You Can Trust
+          </h1>
 
-        <form className="auth-form" onSubmit={handleSubmit}>
           {mode === 'login' ? (
-            <div className="field">
-              <label htmlFor="identifier">Username, email, or phone</label>
-              <input
-                id="identifier"
-                type="text"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="johndoe / you@example.com / 9876543210"
-                autoComplete="username"
-                required
-              />
-            </div>
+            <>
+              <p className="auth-welcome">Welcome back! Sign in to access your verified digital identity.</p>
+
+              <form className="auth-form" onSubmit={handleSubmit}>
+                <div className="auth-section-label">
+                  <span className="auth-section-icon">✦</span> Sign in
+                </div>
+
+                <div className="auth-input-group">
+                  <div className="auth-field">
+                    <label htmlFor="identifier">Username, Email, or Phone</label>
+                    <input
+                      id="identifier"
+                      type="text"
+                      value={identifier}
+                      onChange={(e) => setIdentifier(e.target.value)}
+                      placeholder="Enter username, email, or phone number"
+                      autoComplete="username"
+                      required
+                    />
+                  </div>
+
+                  <div className="auth-field">
+                    <label htmlFor="password">Password</label>
+                    <div className="auth-password-wrap">
+                      <input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        autoComplete="current-password"
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="auth-password-toggle"
+                        onClick={() => setShowPassword((v) => !v)}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? (
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                            <line x1="1" y1="1" x2="23" y2="23" />
+                          </svg>
+                        ) : (
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="auth-options">
+                  <label className="auth-remember">
+                    <input type="checkbox" />
+                    <span>Remember Me</span>
+                  </label>
+                  <button
+                    type="button"
+                    className="auth-forgot-link"
+                    onClick={() => navigate('/forgot-password')}
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
+
+                {error && <p className="auth-error">{error}</p>}
+                {message && !error && <p className="auth-message">{message}</p>}
+
+                <div className="auth-buttons">
+                  <button className="auth-btn-primary" type="submit" disabled={loading}>
+                    {loading ? 'Please wait…' : 'Login'}
+                  </button>
+                  <button
+                    type="button"
+                    className="auth-btn-outline"
+                    onClick={() => switchMode('register')}
+                  >
+                    Sign Up
+                  </button>
+                </div>
+
+                <div className="auth-social">
+                  <span>Or sign in with</span>
+                  <a href="#">Google</a>
+                  <a href="#">Apple</a>
+                  <a href="#">GitHub</a>
+                </div>
+              </form>
+            </>
           ) : (
             <>
-              <div className="field">
-                <label htmlFor="username">Username</label>
-                <input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="johndoe"
-                  autoComplete="username"
-                  required
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="name">Full name</label>
-                <input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="John Doe"
-                  autoComplete="name"
-                  required
-                />
-              </div>
-            </>
-          )}
+              <p className="auth-welcome">Create your secure digital identity.</p>
 
-          {mode === 'register' && (
-            <div className="field">
-              <label htmlFor="email">Email</label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                autoComplete="email"
-                required
-              />
-            </div>
-          )}
-
-          {mode === 'register' && (
-            <>
-              <div className="field">
-                <label htmlFor="phoneno">Phone number</label>
-                <input
-                  id="phoneno"
-                  type="tel"
-                  value={phoneno}
-                  onChange={(e) => setPhoneno(e.target.value)}
-                  placeholder="9876543210"
-                  autoComplete="tel"
-                  required
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="dateOfBirth">Date of birth</label>
-                <input
-                  id="dateOfBirth"
-                  type="date"
-                  value={dateOfBirth}
-                  onChange={(e) => setDateOfBirth(e.target.value)}
-                  autoComplete="bday"
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="gender">Gender</label>
-                <select
-                  id="gender"
-                  value={gender}
-                  onChange={(e) => setGender(e.target.value)}
-                  className="auth-select"
-                >
-                  <option value="MALE">Male</option>
-                  <option value="FEMALE">Female</option>
-                </select>
-              </div>
-            </>
-          )}
-
-          <div className="field">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              required
-            />
-            {mode === 'register' && (
-              <ul className="password-checklist">
-                {getPasswordRuleStatus(password).map((rule) => (
-                  <li
-                    key={rule.id}
-                    className={rule.passed ? 'password-checklist-item passed' : 'password-checklist-item pending'}
-                  >
-                    <span className="password-checklist-dot" />
-                    <span>{rule.label}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          {error && <p className="auth-error">{error}</p>}
-          {message && !error && <p className="auth-message">{message}</p>}
-
-          <button className="submit-button" type="submit" disabled={loading}>
-            {loading ? 'Please wait…' : mode === 'login' ? 'Login' : 'Create account'}
-          </button>
-
-          {mode === 'login' && (
-            <button
-              type="button"
-              className="auth-link-button"
-              onClick={() => {
-                setShowForgotPassword((v) => !v);
-                setShowResetPassword(false);
-                setForgotMessage('');
-                setForgotError('');
-              }}
-            >
-              Forgot password?
-            </button>
-          )}
-        </form>
-
-        {mode === 'login' && showForgotPassword && (
-          <div className="auth-extra-form">
-            <h3 className="auth-extra-title">Forgot password</h3>
-            <form onSubmit={handleForgotPassword}>
-              <div className="field">
-                <label htmlFor="forgot-email">Email</label>
-                <input
-                  id="forgot-email"
-                  type="email"
-                  value={forgotEmail}
-                  onChange={(e) => setForgotEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  required
-                />
-              </div>
-              {forgotError && <p className="auth-error">{forgotError}</p>}
-              {forgotMessage && <p className="auth-message">{forgotMessage}</p>}
-              <button className="submit-button" type="submit" disabled={forgotLoading}>
-                {forgotLoading ? 'Sending…' : 'Send reset link'}
-              </button>
-            </form>
-          </div>
-        )}
-
-        <button
-          type="button"
-          className="auth-link-button"
-          onClick={() => {
-            setShowResetPassword((v) => !v);
-            setShowForgotPassword(false);
-            setResetMessage('');
-            setResetError('');
-          }}
-        >
-          {showResetPassword ? 'Hide reset password' : 'Reset password with token'}
-        </button>
-
-        {showResetPassword && (
-          <div className="auth-extra-form">
-            <h3 className="auth-extra-title">Reset password</h3>
-            <p className="auth-subtitle">Enter the token from your email and a new password.</p>
-            <form onSubmit={handleResetPassword}>
-              <div className="field">
-                <label htmlFor="reset-token">Reset token</label>
-                <input
-                  id="reset-token"
-                  type="text"
-                  value={resetToken}
-                  onChange={(e) => setResetToken(e.target.value)}
-                  placeholder="Paste token from email"
-                  required
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="reset-new-password">New password</label>
-                <input
-                  id="reset-new-password"
-                  type="password"
-                  value={resetNewPassword}
-                  onChange={(e) => setResetNewPassword(e.target.value)}
-                  placeholder="New password"
-                  required
-                />
-                <ul className="password-checklist">
-                  {getPasswordRuleStatus(resetNewPassword).map((rule) => (
-                    <li
-                      key={rule.id}
-                      className={rule.passed ? 'password-checklist-item passed' : 'password-checklist-item pending'}
+              <form className="auth-form" onSubmit={handleSubmit}>
+                <div className="auth-input-group">
+                  <div className="auth-field">
+                    <label htmlFor="username">Username</label>
+                    <input
+                      id="username"
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="johndoe"
+                      autoComplete="username"
+                      required
+                    />
+                  </div>
+                  <div className="auth-field">
+                    <label htmlFor="name">Full name</label>
+                    <input
+                      id="name"
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="John Doe"
+                      autoComplete="name"
+                      required
+                    />
+                  </div>
+                  <div className="auth-field">
+                    <label htmlFor="email">Email</label>
+                    <input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      autoComplete="email"
+                      required
+                    />
+                  </div>
+                  <div className="auth-field">
+                    <label htmlFor="phoneno">Phone number</label>
+                    <input
+                      id="phoneno"
+                      type="tel"
+                      value={phoneno}
+                      onChange={(e) => setPhoneno(e.target.value)}
+                      placeholder="9876543210"
+                      autoComplete="tel"
+                      required
+                    />
+                  </div>
+                  <div className="auth-field">
+                    <label htmlFor="dateOfBirth">Date of birth</label>
+                    <input
+                      id="dateOfBirth"
+                      type="date"
+                      value={dateOfBirth}
+                      onChange={(e) => setDateOfBirth(e.target.value)}
+                      autoComplete="bday"
+                    />
+                  </div>
+                  <div className="auth-field">
+                    <label htmlFor="gender">Gender</label>
+                    <select
+                      id="gender"
+                      value={gender}
+                      onChange={(e) => setGender(e.target.value)}
+                      className="auth-select"
                     >
-                      <span className="password-checklist-dot" />
-                      <span>{rule.label}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              {resetError && <p className="auth-error">{resetError}</p>}
-              {resetMessage && <p className="auth-message">{resetMessage}</p>}
-              <button className="submit-button" type="submit" disabled={resetLoading}>
-                {resetLoading ? 'Resetting…' : 'Reset password'}
-              </button>
-            </form>
-          </div>
-        )}
+                      <option value="MALE">Male</option>
+                      <option value="FEMALE">Female</option>
+                    </select>
+                  </div>
+                  <div className="auth-field">
+                    <label htmlFor="password">Password</label>
+                    <div className="auth-password-wrap">
+                      <input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        autoComplete="new-password"
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="auth-password-toggle"
+                        onClick={() => setShowPassword((v) => !v)}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? (
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                            <line x1="1" y1="1" x2="23" y2="23" />
+                          </svg>
+                        ) : (
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                    <ul className="password-checklist">
+                      {getPasswordRuleStatus(password).map((rule) => (
+                        <li
+                          key={rule.id}
+                          className={
+                            rule.passed
+                              ? 'password-checklist-item passed'
+                              : 'password-checklist-item pending'
+                          }
+                        >
+                          <span className="password-checklist-dot" />
+                          <span>{rule.label}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
 
-        <p className="auth-hint">
-          API base URL:{' '}
-          <code>{import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}</code>
-        </p>
+                {error && <p className="auth-error">{error}</p>}
+                {message && !error && <p className="auth-message">{message}</p>}
+
+                <div className="auth-buttons">
+                  <button className="auth-btn-primary" type="submit" disabled={loading}>
+                    {loading ? 'Please wait…' : 'Create account'}
+                  </button>
+                  <button
+                    type="button"
+                    className="auth-btn-outline"
+                    onClick={() => switchMode('login')}
+                  >
+                    Back to Login
+                  </button>
+                </div>
+              </form>
+            </>
+          )}
+        </div>
+
+        <div className="auth-right">
+          <AuthIllustration />
+        </div>
       </div>
     </div>
   );
@@ -339,17 +333,6 @@ function App() {
   const usernameDebounce = useRef(null);
   const emailDebounce = useRef(null);
   const phonenoDebounce = useRef(null);
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotLoading, setForgotLoading] = useState(false);
-  const [forgotMessage, setForgotMessage] = useState('');
-  const [forgotError, setForgotError] = useState('');
-  const [showResetPassword, setShowResetPassword] = useState(false);
-  const [resetToken, setResetToken] = useState('');
-  const [resetNewPassword, setResetNewPassword] = useState('');
-  const [resetLoading, setResetLoading] = useState(false);
-  const [resetMessage, setResetMessage] = useState('');
-  const [resetError, setResetError] = useState('');
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -471,50 +454,7 @@ function App() {
     if (nextMode === mode) return;
     setMode(nextMode);
     resetFeedback();
-    setShowForgotPassword(false);
-    setShowResetPassword(false);
-    setForgotMessage('');
-    setForgotError('');
-    setResetMessage('');
-    setResetError('');
     navigate(nextMode === 'login' ? '/login' : '/register', { replace: true });
-  }
-
-  async function handleForgotPassword(e) {
-    e.preventDefault();
-    setForgotError('');
-    setForgotMessage('');
-    setForgotLoading(true);
-    try {
-      await forgotPassword(forgotEmail);
-      setForgotMessage('If an account exists, you will receive a reset link by email.');
-    } catch (err) {
-      setForgotError(err.message || 'Something went wrong');
-    } finally {
-      setForgotLoading(false);
-    }
-  }
-
-  async function handleResetPassword(e) {
-    e.preventDefault();
-    setResetError('');
-    setResetMessage('');
-    const pwdCheck = validatePassword(resetNewPassword);
-    if (!pwdCheck.valid) {
-      setResetError(`Password: ${pwdCheck.errors.join('; ')}`);
-      return;
-    }
-    setResetLoading(true);
-    try {
-      await resetPassword({ token: resetToken, newPassword: resetNewPassword });
-      setResetMessage('Password reset successfully. You can now log in.');
-      setResetToken('');
-      setResetNewPassword('');
-    } catch (err) {
-      setResetError(err.message || 'Something went wrong');
-    } finally {
-      setResetLoading(false);
-    }
   }
 
   function handleLogout() {
@@ -534,7 +474,6 @@ function App() {
           ) : (
             <AuthScreen
               mode={mode}
-              setMode={setMode}
               identifier={identifier}
               setIdentifier={setIdentifier}
               email={email}
@@ -554,25 +493,7 @@ function App() {
               loading={loading}
               error={error}
               message={message}
-              showForgotPassword={showForgotPassword}
-              setShowForgotPassword={setShowForgotPassword}
-              forgotEmail={forgotEmail}
-              setForgotEmail={setForgotEmail}
-              forgotLoading={forgotLoading}
-              forgotMessage={forgotMessage}
-              forgotError={forgotError}
-              showResetPassword={showResetPassword}
-              setShowResetPassword={setShowResetPassword}
-              resetToken={resetToken}
-              setResetToken={setResetToken}
-              resetNewPassword={resetNewPassword}
-              setResetNewPassword={setResetNewPassword}
-              resetLoading={resetLoading}
-              resetMessage={resetMessage}
-              resetError={resetError}
               handleSubmit={handleSubmit}
-              handleForgotPassword={handleForgotPassword}
-              handleResetPassword={handleResetPassword}
               switchMode={switchMode}
             />
           )
@@ -586,7 +507,6 @@ function App() {
           ) : (
             <AuthScreen
               mode={mode}
-              setMode={setMode}
               identifier={identifier}
               setIdentifier={setIdentifier}
               email={email}
@@ -606,30 +526,26 @@ function App() {
               loading={loading}
               error={error}
               message={message}
-              showForgotPassword={showForgotPassword}
-              setShowForgotPassword={setShowForgotPassword}
-              forgotEmail={forgotEmail}
-              setForgotEmail={setForgotEmail}
-              forgotLoading={forgotLoading}
-              forgotMessage={forgotMessage}
-              forgotError={forgotError}
-              showResetPassword={showResetPassword}
-              setShowResetPassword={setShowResetPassword}
-              resetToken={resetToken}
-              setResetToken={setResetToken}
-              resetNewPassword={resetNewPassword}
-              setResetNewPassword={setResetNewPassword}
-              resetLoading={resetLoading}
-              resetMessage={resetMessage}
-              resetError={resetError}
               handleSubmit={handleSubmit}
-              handleForgotPassword={handleForgotPassword}
-              handleResetPassword={handleResetPassword}
               switchMode={switchMode}
             />
           )
         }
       />
+      <Route
+        path="/forgot-password"
+        element={
+          isAuthed ? (
+            <Navigate to="/home" replace />
+          ) : (
+            <ForgotPassword />
+          )
+        }
+      />
+      <Route path="/solutions" element={<Solutions />} />
+      <Route path="/verify" element={<Verify />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/help" element={<Help />} />
       <Route
         path="/home"
         element={
@@ -663,6 +579,90 @@ function App() {
             </Layout>
           ) : (
             <Navigate to="/login" state={{ from: '/settings' }} replace />
+          )
+        }
+      />
+      <Route
+        path="/verify-identity"
+        element={
+          isAuthed ? (
+            <Layout user={user} onLogout={handleLogout}>
+              <VerifyIdentity user={user} />
+            </Layout>
+          ) : (
+            <Navigate to="/login" state={{ from: '/verify-identity' }} replace />
+          )
+        }
+      />
+      <Route
+        path="/credentials"
+        element={
+          isAuthed ? (
+            <Layout user={user} onLogout={handleLogout}>
+              <Credentials user={user} />
+            </Layout>
+          ) : (
+            <Navigate to="/login" state={{ from: '/credentials' }} replace />
+          )
+        }
+      />
+      <Route
+        path="/services"
+        element={
+          isAuthed ? (
+            <Layout user={user} onLogout={handleLogout}>
+              <ConnectedServices />
+            </Layout>
+          ) : (
+            <Navigate to="/login" state={{ from: '/services' }} replace />
+          )
+        }
+      />
+      <Route
+        path="/activity"
+        element={
+          isAuthed ? (
+            <Layout user={user} onLogout={handleLogout}>
+              <Activity />
+            </Layout>
+          ) : (
+            <Navigate to="/login" state={{ from: '/activity' }} replace />
+          )
+        }
+      />
+      <Route
+        path="/documents"
+        element={
+          isAuthed ? (
+            <Layout user={user} onLogout={handleLogout}>
+              <Documents user={user} />
+            </Layout>
+          ) : (
+            <Navigate to="/login" state={{ from: '/documents' }} replace />
+          )
+        }
+      />
+      <Route
+        path="/wallet"
+        element={
+          isAuthed ? (
+            <Layout user={user} onLogout={handleLogout}>
+              <Wallet user={user} />
+            </Layout>
+          ) : (
+            <Navigate to="/login" state={{ from: '/wallet' }} replace />
+          )
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          isAuthed ? (
+            <Layout user={user} onLogout={handleLogout}>
+              <Notifications />
+            </Layout>
+          ) : (
+            <Navigate to="/login" state={{ from: '/notifications' }} replace />
           )
         }
       />

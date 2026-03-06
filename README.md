@@ -1,17 +1,97 @@
-# React + Vite
+# My App — React Authentication Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React 19 single-page application with JWT-based authentication, user profiles, and account management. Built with Vite for fast development and optimized production builds.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Authentication** — Login with username, email, or phone number. Register with real-time availability checks (debounced) for username, email, and phone.
+- **Password Management** — Forgot password (email reset link), reset password via token, and change password for authenticated users. Live password strength checklist enforces rules (length, uppercase, lowercase, digit, special character).
+- **User Profile** — View account details including name, username, email, phone, date of birth, gender, role, status, and last login.
+- **Settings** — Change password with validation. Placeholders for Notifications and Privacy sections.
+- **Protected Routes** — Home, Profile, and Settings require authentication; unauthenticated users are redirected to the login page.
+- **404 Handling** — Custom page for unknown routes.
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Category | Technology |
+|----------|------------|
+| Framework | React 19 |
+| Build Tool | Vite (with rolldown-vite) |
+| Routing | react-router-dom 7 |
+| Styling | Plain CSS (dark theme, gradient background) |
+| State | React hooks (`useState`, `useEffect`) |
+| Linting | ESLint 9 (flat config) |
 
-## Expanding the ESLint configuration
+## Project Structure
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-# react-frontend
+```
+src/
+├── main.jsx                  # Entry point (StrictMode, BrowserRouter)
+├── App.jsx                   # Routes and AuthScreen (login/register)
+├── api/
+│   └── auth.js               # API layer (JWT, login, register, etc.)
+├── components/
+│   └── Layout.jsx            # Header, nav dropdown, footer
+├── pages/
+│   ├── Home.jsx              # Dashboard
+│   ├── Profile.jsx           # User profile
+│   └── Settings.jsx          # Settings and change password
+└── utils/
+    └── passwordValidation.js # Password rules and validation helpers
+```
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v18+)
+- A running backend API (default: `http://localhost:8080`)
+
+### Installation
+
+```bash
+npm install
+```
+
+### Environment
+
+Create a `.env` file in the project root:
+
+```
+VITE_API_BASE_URL=http://localhost:8080
+```
+
+### Development
+
+```bash
+npm run dev
+```
+
+### Production Build
+
+```bash
+npm run build
+npm run preview
+```
+
+### Linting
+
+```bash
+npm run lint
+```
+
+## API Endpoints
+
+The app expects a backend with the following endpoints:
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/login` | Login |
+| POST | `/api/auth/register` | Register |
+| GET | `/api/auth/me` | Get current user |
+| GET | `/api/auth/check-availability` | Check username/email/phone availability |
+| POST | `/api/auth/forgot-password` | Send password reset email |
+| POST | `/api/auth/reset-password` | Reset password with token |
+| POST | `/api/auth/change-password` | Change password (authenticated) |
+
+Authentication uses JWT tokens stored in `localStorage`.

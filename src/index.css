@@ -2,8 +2,7 @@
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color-scheme: dark;
-  color: rgba(255, 255, 255, 0.92);
+  color: #333;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -18,37 +17,17 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  box-sizing: border-box;
-  /* Slowly shifting gradient background */
-  background: linear-gradient(
-    -45deg,
-    #0f0c29,
-    #1a1a2e,
-    #16213e,
-    #1e1b4b,
-    #1a1a2e
-  );
-  background-size: 400% 400%;
-  animation: gradient-drift 20s ease infinite;
-}
-
-@keyframes gradient-drift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  background: #fff;
+  color: #333;
 }
 
 a {
   font-weight: 500;
-  color: #818cf8;
+  color: #4834d4;
   text-decoration: inherit;
 }
 a:hover {
-  color: #a5b4fc;
+  color: #3b28b8;
 }
 
 h1 {
@@ -63,21 +42,10 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
   cursor: pointer;
   transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
 }
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  body {
-    animation: none;
-    background-position: 50% 50%;
-  }
 }
