@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import useAuth from '../../hooks/useAuth';
 import './Credentials.css';
 
 const CREDENTIAL_CATEGORIES = [
@@ -60,7 +61,8 @@ const CREDENTIAL_CATEGORIES = [
   },
 ];
 
-export default function Credentials({ user }) {
+export default function Credentials() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('all');
   const [expandedId, setExpandedId] = useState(null);
 

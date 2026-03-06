@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom';
+import useAuth from '../../hooks/useAuth';
 import './Home.css';
 
-export default function Home({ user }) {
+export default function Home() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const verificationStatus = user?.accountStatus === 'ACTIVE' ? 'verified' : 'pending';
   const isVerified = verificationStatus === 'verified';

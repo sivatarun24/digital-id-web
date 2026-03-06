@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import './Settings.css';
-import { changePassword } from '../api/auth';
-import { validateChangePassword, PASSWORD_HINT, getPasswordRuleStatus } from '../utils/passwordValidation';
+import { changePassword } from '../../api/auth';
+import { validateChangePassword, PASSWORD_HINT, getPasswordRuleStatus } from '../../utils/passwordValidation';
 
 export default function Settings() {
   const [showChangePassword, setShowChangePassword] = useState(false);

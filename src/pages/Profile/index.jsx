@@ -1,6 +1,8 @@
+import useAuth from '../../hooks/useAuth';
 import './Profile.css';
 
-export default function Profile({ user }) {
+export default function Profile() {
+  const { user } = useAuth();
   const isVerified = user?.accountStatus === 'ACTIVE';
 
   const personalFields = [

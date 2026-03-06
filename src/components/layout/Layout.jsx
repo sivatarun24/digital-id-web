@@ -1,21 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import useAuth from '../../hooks/useAuth';
+import { NAV_ITEMS, HEADER_NAV_COUNT } from '../../constants/navigation';
 import './Layout.css';
 
-const NAV_ITEMS = [
-  { path: '/home', label: 'Home', icon: '🏠' },
-  { path: '/verify-identity', label: 'Verify Identity', icon: '🪪' },
-  { path: '/credentials', label: 'Credentials', icon: '🎖️' },
-  { path: '/wallet', label: 'Wallet', icon: '💳' },
-  { path: '/documents', label: 'Documents', icon: '📄' },
-  { path: '/services', label: 'Services', icon: '🔗' },
-  { path: '/activity', label: 'Activity', icon: '📊' },
-  { path: '/notifications', label: 'Notifications', icon: '🔔' },
-  { path: '/profile', label: 'Profile', icon: '👤' },
-  { path: '/settings', label: 'Settings', icon: '⚙️' },
-];
-
-export default function Layout({ user, onLogout, children }) {
+export default function Layout({ children }) {
+  const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -39,7 +29,7 @@ export default function Layout({ user, onLogout, children }) {
 
   function handleLogout() {
     setMenuOpen(false);
-    onLogout();
+    logout();
     navigate('/login');
   }
 
@@ -67,7 +57,7 @@ export default function Layout({ user, onLogout, children }) {
           </div>
 
           <nav className="layout-header-nav">
-            {NAV_ITEMS.slice(0, 5).map((item) => (
+            {NAV_ITEMS.slice(0, HEADER_NAV_COUNT).map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
@@ -153,10 +143,7 @@ export default function Layout({ user, onLogout, children }) {
         </aside>
 
         {mobileSidebarOpen && (
-          <div
-            className="layout-sidebar-backdrop"
-            onClick={() => setMobileSidebarOpen(false)}
-          />
+          <div className="layout-sidebar-backdrop" onClick={() => setMobileSidebarOpen(false)} />
         )}
 
         <main className="layout-main">{children}</main>

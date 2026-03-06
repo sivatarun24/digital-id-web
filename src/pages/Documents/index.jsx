@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import useAuth from '../../hooks/useAuth';
 import './Documents.css';
 
 const MOCK_DOCUMENTS = [
@@ -33,7 +34,8 @@ const DOCUMENT_TYPES = [
   { id: 'tax_return', icon: '📊', label: 'Tax Return' },
 ];
 
-export default function Documents({ user }) {
+export default function Documents() {
+  const { user } = useAuth();
   const [documents] = useState(MOCK_DOCUMENTS);
   const [showUpload, setShowUpload] = useState(false);
   const [selectedDocType, setSelectedDocType] = useState(null);

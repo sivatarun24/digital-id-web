@@ -1,9 +1,9 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { forgotPassword, resetPassword } from '../api/auth';
-import AuthIllustration from '../components/AuthIllustration';
-import PublicNav from '../components/PublicNav';
-import { validatePassword, getPasswordRuleStatus } from '../utils/passwordValidation';
+import { forgotPassword, resetPassword } from '../../api/auth';
+import AuthIllustration from '../../components/auth/AuthIllustration';
+import PublicNav from '../../components/layout/PublicNav';
+import { validatePassword, getPasswordRuleStatus } from '../../utils/passwordValidation';
 import './ForgotPassword.css';
 
 const CODE_LENGTH = 8;

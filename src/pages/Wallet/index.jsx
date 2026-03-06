@@ -1,6 +1,8 @@
+import useAuth from '../../hooks/useAuth';
 import './Wallet.css';
 
-export default function Wallet({ user }) {
+export default function Wallet() {
+  const { user } = useAuth();
   const isVerified = user?.accountStatus === 'ACTIVE';
   const initials = (user?.name || user?.username || 'U')
     .split(' ')

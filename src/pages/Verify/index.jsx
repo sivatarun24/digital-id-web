@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import PublicNav from '../components/PublicNav';
-import './PublicPage.css';
+import PublicNav from '../../components/layout/PublicNav';
+import '../../styles/public.css';
 
 export default function Verify() {
   const steps = [

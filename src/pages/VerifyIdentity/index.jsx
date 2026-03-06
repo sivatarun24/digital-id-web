@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import useAuth from '../../hooks/useAuth';
 import './VerifyIdentity.css';
 
 const STEPS = [
@@ -16,7 +17,8 @@ const ID_TYPES = [
   { id: 'passport_card', icon: '💳', label: 'Passport Card', desc: 'U.S. passport card' },
 ];
 
-export default function VerifyIdentity({ user }) {
+export default function VerifyIdentity() {
+  const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [selectedType, setSelectedType] = useState(null);
   const [frontFile, setFrontFile] = useState(null);
