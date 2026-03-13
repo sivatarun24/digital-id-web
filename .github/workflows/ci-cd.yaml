@@ -127,14 +127,14 @@ jobs:
           echo "Image github ref is: '${{ github.ref }}'"
           echo "Image github event name is: '${{ github.event_name }}'"
 
-      - name: Deploy to Cloud Run
-        run: |
-          gcloud run deploy ${{ env.CLOUD_RUN_SERVICE }} \
-            --image ${{ needs.build-and-push.outputs.full_image }} \
-            --platform managed \
-            --region ${{ env.GCP_REGION }} \
-            --allow-unauthenticated \
-            --set-env-vars VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
+      # - name: Deploy to Cloud Run
+      #   run: |
+      #     gcloud run deploy ${{ env.CLOUD_RUN_SERVICE }} \
+      #       --image ${{ needs.build-and-push.outputs.full_image }} \
+      #       --platform managed \
+      #       --region ${{ env.GCP_REGION }} \
+      #       --allow-unauthenticated \
+      #       --set-env-vars VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
 
       - name: Deploy to Cloud Run
         run: |
