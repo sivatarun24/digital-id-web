@@ -116,6 +116,17 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
+      - name: Debug image
+        run: |
+          echo "Image tag is: '${{ needs.build-and-push.outputs.tag }}'"
+          echo "Image full image is: '${{ needs.build-and-push.outputs.full_image }}'"
+          echo "Image artifact registry is: '${{ env.ARTIFACT_REGISTRY }}'"
+          echo "Image project id is: '${{ env.GCP_PROJECT_ID }}'"
+          echo "Image image name is: '${{ env.IMAGE_NAME }}'"
+          echo "Image github sha is: '${{ github.sha }}'"
+          echo "Image github ref is: '${{ github.ref }}'"
+          echo "Image github event name is: '${{ github.event_name }}'"
+
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy ${{ env.CLOUD_RUN_SERVICE }} \
@@ -124,12 +135,13 @@ jobs:
             --region ${{ env.GCP_REGION }} \
             --allow-unauthenticated \
             --set-env-vars VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
-            - name: Deploy to Cloud Run
-        # run: |
-        #   IMAGE="${{ env.ARTIFACT_REGISTRY }}/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-        #   gcloud run deploy ${{ env.CLOUD_RUN_SERVICE }} \
-        #     --image "$IMAGE" \
-        #     --platform managed \
-        #     --region ${{ env.GCP_REGION }} \
-        #     --allow-unauthenticated \
-        #     --set-env-vars VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
+
+      - name: Deploy to Cloud Run
+        run: |
+          IMAGE="${{ env.ARTIFACT_REGISTRY }}/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          gcloud run deploy ${{ env.CLOUD_RUN_SERVICE }} \
+            --image "$IMAGE" \
+            --platform managed \
+            --region ${{ env.GCP_REGION }} \
+            --allow-unauthenticated \
+            --set-env-vars VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
