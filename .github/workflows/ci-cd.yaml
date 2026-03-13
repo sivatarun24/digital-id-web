@@ -118,14 +118,8 @@ jobs:
 
       - name: Debug image
         run: |
-          echo "Image tag is: '${{ needs.build-and-push.outputs.tag }}'"
-          echo "Image full image is: '${{ needs.build-and-push.outputs.full_image }}'"
-          echo "Image artifact registry is: '${{ env.ARTIFACT_REGISTRY }}'"
-          echo "Image project id is: '${{ env.GCP_PROJECT_ID }}'"
-          echo "Image image name is: '${{ env.IMAGE_NAME }}'"
-          echo "Image github sha is: '${{ github.sha }}'"
-          echo "Image github ref is: '${{ github.ref }}'"
-          echo "Image github event name is: '${{ github.event_name }}'"
+          echo "Image tag is: '${{ jobs.build-and-push.outputs.image_tag }}'"
+          echo "Image full image is: '${{ jobs.build-and-push.outputs.full_image }}'"
 
       # - name: Deploy to Cloud Run
       #   run: |
