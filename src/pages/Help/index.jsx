@@ -34,7 +34,7 @@ const FAQ_DATA = [
   },
   {
     q: 'I\'m having trouble verifying. What should I do?',
-    a: 'Make sure your ID photo is clear and well-lit, and that your selfie matches the photo on your document. If you continue to have issues, contact our support team at support@digitalid.com and we\'ll help you through the process.',
+    a: 'Make sure your ID photo is clear and well-lit, and that your selfie matches the photo on your document. If you continue to have issues, contact our support team at digitalidastr@gmail.com and we\'ll help you through the process.',
   },
   {
     q: 'How do I delete my account?',
@@ -84,7 +84,7 @@ export default function Help() {
         <div className="pub-cta">
           <h2>Still Need Help?</h2>
           <p>Our support team is available 24/7 to assist you.</p>
-          <a href="mailto:support@digitalid.com" className="pub-cta-btn">
+          <a href="mailto:digitalidastr@gmail.com" className="pub-cta-btn">
             Contact Support
           </a>
         </div>
