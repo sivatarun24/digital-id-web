@@ -41,8 +41,6 @@ export default function Documents() {
   const [selectedDocType, setSelectedDocType] = useState(null);
   const [uploadFile, setUploadFile] = useState(null);
 
-  const isVerified = user?.accountStatus === 'ACTIVE';
-
   return (
     <div className="docs-page">
       <div className="docs-header">

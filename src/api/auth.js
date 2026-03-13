@@ -8,7 +8,9 @@ export function setAccessToken(token) {
   try {
     if (token) localStorage.setItem(TOKEN_KEY, token);
     else localStorage.removeItem(TOKEN_KEY);
-  } catch (_) {}
+  } catch {
+    // Ignore storage errors (e.g. disabled cookies, private mode)
+  }
 }
 
 export function getAccessToken() {
@@ -20,7 +22,9 @@ export function clearSession() {
   accessToken = null;
   try {
     localStorage.removeItem(TOKEN_KEY);
-  } catch (_) {}
+  } catch {
+    // Ignore storage errors
+  }
 }
 
 async function request(path, options = {}) {
@@ -45,7 +49,9 @@ async function request(path, options = {}) {
       accessToken = null;
       try {
         localStorage.removeItem(TOKEN_KEY);
-      } catch (_) {}
+      } catch {
+        // Ignore storage errors
+      }
     }
     const message = data?.message || data?.error || 'Something went wrong';
     throw new Error(message);
@@ -82,7 +88,9 @@ export function login({ identifier, password }) {
       accessToken = data.accessToken;
       try {
         localStorage.setItem(TOKEN_KEY, data.accessToken);
-      } catch (_) {}
+      } catch {
+        // Ignore storage errors
+      }
     }
     return data;
   });

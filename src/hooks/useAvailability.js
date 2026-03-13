@@ -38,6 +38,7 @@ export function useFieldAvailability(field, value, enabled) {
       if (digits.length >= 10) {
         timerRef.current = setTimeout(() => check(digits), DEBOUNCE_MS);
       } else {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setStatus(digits.length > 0 ? 'checking' : null);
       }
     } else {
@@ -45,6 +46,7 @@ export function useFieldAvailability(field, value, enabled) {
       if (trimmed) {
         timerRef.current = setTimeout(() => check(trimmed), DEBOUNCE_MS);
       } else {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setStatus(null);
       }
     }
