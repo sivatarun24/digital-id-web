@@ -23,11 +23,6 @@ export default function Layout({ children }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => {
-    setMobileSidebarOpen(false);
-  }, [location.pathname]);
-
   function handleLogout() {
     setMenuOpen(false);
     logout();

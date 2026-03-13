@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { checkAvailability } from '../api/auth';
 
@@ -38,15 +39,15 @@ export function useFieldAvailability(field, value, enabled) {
       if (digits.length >= 10) {
         timerRef.current = setTimeout(() => check(digits), DEBOUNCE_MS);
       } else {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setStatus(digits.length > 0 ? 'checking' : null);
+        if (digits.length === 0) {
+          setStatus(null);
+        }
       }
     } else {
       const trimmed = (value ?? '').trim();
       if (trimmed) {
         timerRef.current = setTimeout(() => check(trimmed), DEBOUNCE_MS);
       } else {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setStatus(null);
       }
     }
