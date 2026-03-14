@@ -121,15 +121,6 @@ jobs:
           echo "Image tag is: ${{ needs.build-and-push.outputs.image_tag }}"
           echo "Image full image is: ${{ needs.build-and-push.outputs.full_image }}"
 
-      # - name: Deploy to Cloud Run
-      #   run: |
-      #     gcloud run deploy ${{ env.CLOUD_RUN_SERVICE }} \
-      #       --image ${{ needs.build-and-push.outputs.full_image }} \
-      #       --platform managed \
-      #       --region ${{ env.GCP_REGION }} \
-      #       --allow-unauthenticated \
-      #       --set-env-vars VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
-
       - name: Deploy to Cloud Run
         run: |
           IMAGE="${{ env.ARTIFACT_REGISTRY }}/${{ env.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
@@ -138,3 +129,4 @@ jobs:
             --platform managed \
             --region ${{ env.GCP_REGION }} \
             --allow-unauthenticated
+            --set-env-vars VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
