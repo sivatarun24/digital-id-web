@@ -1,4 +1,4 @@
-# My App — React Authentication Frontend
+# digital-id-web — Digital ID (React frontend)
 
 A React 19 single-page application with JWT-based authentication, user profiles, and account management. Built with Vite for fast development and optimized production builds.
 
