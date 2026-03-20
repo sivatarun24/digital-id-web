@@ -1,166 +1,153 @@
-.profile-page {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
+/* ── Profile ── */
+
+.profile-page { max-width: 660px; }
 
 .profile-page h2 {
-  margin: 0;
-  font-size: 1.35rem;
-  font-weight: 600;
-  color: #4834d4;
+  font-size: 1.125rem;
+  margin-bottom: 20px;
 }
 
+/* Card */
 .profile-card {
-  background: #fff;
-  border: 1px solid #e8e8ed;
-  border-radius: 14px;
-  padding: 1.5rem;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
 }
-
-/* --- Header Card --- */
 
 .profile-card-header {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
+  gap: 14px;
+  padding: 18px 20px;
 }
 
 .profile-avatar {
-  width: 4rem;
-  height: 4rem;
-  border-radius: 999px;
-  background: #4834d4;
-  color: #fff;
-  font-size: 1.35rem;
-  font-weight: 700;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-size: 0.9375rem;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(72, 52, 212, 0.25);
   flex-shrink: 0;
+  border: 1.5px solid var(--accent-border);
 }
 
 .profile-header-info {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 2px;
   flex: 1;
+  min-width: 0;
 }
 
 .profile-header-name {
-  font-size: 1.15rem;
+  font-size: 0.9375rem;
   font-weight: 600;
-  color: #333;
+  color: var(--text);
 }
 
 .profile-header-email {
-  font-size: 0.85rem;
-  color: #999;
+  font-size: 0.8125rem;
+  color: var(--text-2);
 }
 
 .profile-verification-badge {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.85rem;
-  border-radius: 20px;
-  font-size: 0.82rem;
-  font-weight: 600;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--r-full);
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: var(--bg);
+  color: var(--text-2);
+  border: 1px solid var(--border);
   flex-shrink: 0;
 }
 
 .profile-verification-badge.verified {
-  background: #f0fdf4;
-  color: #16a34a;
-  border: 1px solid #bbf7d0;
+  background: var(--success-bg);
+  color: var(--success);
+  border-color: var(--success-border);
 }
 
-.profile-verification-badge.pending {
-  background: #fffbeb;
-  color: #d97706;
-  border: 1px solid #fed7aa;
-}
+.profile-badge-icon { display: flex; align-items: center; }
 
-.profile-badge-icon {
-  font-size: 0.9rem;
-}
-
-/* --- Sections --- */
-
-.profile-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
+/* Sections */
+.profile-section { margin-top: 20px; }
 
 .profile-section-title {
-  margin: 0;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: #999;
+  font-size: 0.75rem;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+  margin-bottom: 8px;
 }
 
-/* --- Rows --- */
-
-.profile-rows {
-  width: 100%;
-}
+/* Rows */
+.profile-rows { display: flex; flex-direction: column; }
 
 .profile-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0.65rem 0;
-  border-bottom: 1px solid #f0f0f0;
-  gap: 1rem;
+  justify-content: space-between;
+  padding: 11px 20px;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
 }
 
-.profile-row:last-child {
-  border-bottom: none;
-}
+.profile-row:last-child { border-bottom: none; }
 
 .profile-label {
-  font-size: 0.9rem;
-  color: #999;
+  font-size: 0.8125rem;
+  color: var(--text-2);
+  flex-shrink: 0;
+  min-width: 130px;
 }
 
 .profile-value {
-  font-size: 0.9rem;
-  color: #333;
+  font-size: 0.875rem;
+  color: var(--text);
   text-align: right;
+  word-break: break-all;
 }
 
 .profile-status {
-  text-transform: capitalize;
-  color: #16a34a;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--r-full);
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid var(--success-border);
 }
 
-/* --- Empty State --- */
-
+/* Empty state */
 .profile-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  padding: 1.5rem 1rem;
+  padding: 2rem 1.5rem;
+  gap: 5px;
 }
 
-.profile-empty-icon {
-  font-size: 2rem;
-  display: block;
-  margin-bottom: 0.5rem;
-}
+.profile-empty-icon { display: flex; align-items: center; justify-content: center; color: var(--text-3); }
 
 .profile-empty-state p {
-  margin: 0 0 0.25rem;
-  font-size: 0.95rem;
-  color: #555;
+  font-size: 0.875rem;
+  color: var(--text);
 }
 
 .profile-empty-hint {
-  font-size: 0.82rem;
-  color: #999;
-  line-height: 1.4;
+  font-size: 0.8125rem;
+  color: var(--text-2);
+  max-width: 340px;
+  line-height: 1.5;
 }

@@ -1,6 +1,25 @@
 import useAuth from '../../hooks/useAuth';
 import './Profile.css';
 
+const Icon = {
+  Check: () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  ),
+  Circle: () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+      <circle cx="12" cy="12" r="10" />
+    </svg>
+  ),
+  Clipboard: () => (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+      <rect x="8" y="2" width="8" height="4" rx="1" />
+    </svg>
+  ),
+};
+
 export default function Profile() {
   const { user } = useAuth();
   const isVerified = user?.accountStatus === 'ACTIVE';
@@ -48,7 +67,9 @@ export default function Profile() {
             <span className="profile-header-email">{user?.email}</span>
           </div>
           <div className={'profile-verification-badge ' + (isVerified ? 'verified' : 'pending')}>
-            <span className="profile-badge-icon">{isVerified ? '✓' : '○'}</span>
+            <span className="profile-badge-icon">
+              {isVerified ? <Icon.Check /> : <Icon.Circle />}
+            </span>
             <span>{isVerified ? 'Verified' : 'Unverified'}</span>
           </div>
         </div>
@@ -96,7 +117,7 @@ export default function Profile() {
         <h3 className="profile-section-title">Verified Credentials</h3>
         <div className="profile-card">
           <div className="profile-empty-state">
-            <span className="profile-empty-icon">📋</span>
+            <span className="profile-empty-icon"><Icon.Clipboard /></span>
             <p>No verified credentials yet.</p>
             <span className="profile-empty-hint">
               Complete identity verification to unlock credentials like military,

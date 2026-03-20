@@ -1,70 +1,115 @@
+import { useEffect, useState } from 'react';
+
+const LABELS = [
+  'Identity Verification',
+  'Military Status',
+  'Student Enrollment',
+  'Healthcare Worker',
+  'First Responder',
+];
+
 export default function AuthIllustration() {
+  const [idx, setIdx] = useState(0);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setIdx(i => (i + 1) % LABELS.length);
+        setVisible(true);
+      }, 350);
+    }, 2800);
+    return () => clearInterval(t);
+  }, []);
+
   return (
-    <svg
-      viewBox="0 0 480 480"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      style={{ width: '100%', maxWidth: '400px' }}
-    >
-      <path
-        d="M240 60 L380 120 L380 260 Q380 360 240 430 Q100 360 100 260 L100 120 Z"
-        fill="#eef0ff"
-        stroke="#4834d4"
-        strokeWidth="3"
-      />
-      <path
-        d="M240 80 L360 132 L360 256 Q360 344 240 408 Q120 344 120 256 L120 132 Z"
-        fill="#f5f3ff"
-      />
-      <path
-        d="M240 100 L340 144 L340 252 Q340 328 240 386 Q140 328 140 252 L140 144 Z"
-        fill="#fff"
-        stroke="#d4d0f8"
-        strokeWidth="1.5"
-      />
-      <circle cx="240" cy="220" r="60" fill="#4834d4" opacity="0.1" />
-      <circle cx="240" cy="220" r="48" fill="#4834d4" />
-      <path
-        d="M215 220 L232 237 L268 201"
-        stroke="#fff"
-        strokeWidth="5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-      <circle cx="240" cy="140" r="20" fill="#4834d4" opacity="0.15" />
-      <circle cx="240" cy="140" r="14" fill="#4834d4" opacity="0.25" />
-      <rect x="195" y="280" width="90" height="6" rx="3" fill="#4834d4" opacity="0.15" />
-      <rect x="210" y="296" width="60" height="4" rx="2" fill="#4834d4" opacity="0.1" />
-      <g transform="translate(70, 160)">
-        <circle cx="0" cy="0" r="18" fill="#22c55e" opacity="0.15" />
-        <circle cx="0" cy="0" r="12" fill="#22c55e" />
-        <path d="M-5 0 L-1.5 3.5 L6 -3" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      </g>
-      <g transform="translate(410, 180)">
-        <circle cx="0" cy="0" r="18" fill="#3b82f6" opacity="0.15" />
-        <circle cx="0" cy="0" r="12" fill="#3b82f6" />
-        <path d="M-4 -2 L0 -2 L0 4 M-4 4 L4 4" stroke="#fff" strokeWidth="2" strokeLinecap="round" fill="none" />
-      </g>
-      <g transform="translate(90, 310)">
-        <circle cx="0" cy="0" r="15" fill="#f59e0b" opacity="0.15" />
-        <circle cx="0" cy="0" r="10" fill="#f59e0b" />
-        <path d="M0 -4 L0 1 M0 3.5 L0 4" stroke="#fff" strokeWidth="2" strokeLinecap="round" fill="none" />
-      </g>
-      <g transform="translate(395, 300)">
-        <circle cx="0" cy="0" r="15" fill="#8b5cf6" opacity="0.15" />
-        <circle cx="0" cy="0" r="10" fill="#8b5cf6" />
-        <path d="M-3 0 A3 3 0 0 1 3 0 A3 3 0 0 1 -3 0" stroke="#fff" strokeWidth="1.8" fill="none" />
-        <circle cx="0" cy="0" r="1" fill="#fff" />
-      </g>
-      <circle cx="150" cy="100" r="3" fill="#4834d4" opacity="0.2" />
-      <circle cx="340" cy="110" r="3" fill="#4834d4" opacity="0.2" />
-      <circle cx="120" cy="380" r="2.5" fill="#4834d4" opacity="0.15" />
-      <circle cx="370" cy="370" r="2.5" fill="#4834d4" opacity="0.15" />
-      <circle cx="60" cy="240" r="2" fill="#4834d4" opacity="0.12" />
-      <circle cx="420" cy="250" r="2" fill="#4834d4" opacity="0.12" />
-      <line x1="88" y1="168" x2="140" y2="185" stroke="#4834d4" strokeWidth="1" opacity="0.1" strokeDasharray="4 3" />
-      <line x1="392" y1="188" x2="340" y2="205" stroke="#4834d4" strokeWidth="1" opacity="0.1" strokeDasharray="4 3" />
-    </svg>
+    <div className="auth-panel">
+      <div className="auth-panel-orb auth-panel-orb-1" />
+      <div className="auth-panel-orb auth-panel-orb-2" />
+
+      {/* Floating glass cards */}
+      <div className="auth-float-card auth-float-card-1">
+        <span className="auth-float-dot" style={{ background: '#34d399' }} />
+        <div>
+          <div className="auth-float-title">Identity Verified</div>
+          <div className="auth-float-sub">Gov. ID confirmed</div>
+        </div>
+      </div>
+
+      <div className="auth-float-card auth-float-card-2">
+        <span className="auth-float-dot" style={{ background: '#60a5fa' }} />
+        <div>
+          <div className="auth-float-title">AES-256 Encrypted</div>
+          <div className="auth-float-sub">Bank-grade security</div>
+        </div>
+      </div>
+
+      <div className="auth-float-card auth-float-card-3">
+        <span className="auth-float-dot" style={{ background: '#a78bfa' }} />
+        <div>
+          <div className="auth-float-title">600+ Partners</div>
+          <div className="auth-float-sub">Trusted network</div>
+        </div>
+      </div>
+
+      {/* Center */}
+      <div className="auth-panel-center">
+        <div className="auth-shield-wrap">
+          <div className="auth-shield-ring auth-shield-ring-1" />
+          <div className="auth-shield-ring auth-shield-ring-2" />
+
+          <svg className="auth-shield-svg" width="118" height="138" viewBox="0 0 118 138" fill="none" aria-hidden="true">
+            <defs>
+              <clipPath id="shield-clip">
+                <path d="M59 20 L100 36 L100 72 Q100 110 59 130 Q18 110 18 72 L18 36 Z" />
+              </clipPath>
+            </defs>
+            {/* Outer shield */}
+            <path
+              d="M59 6 L110 26 L110 74 Q110 118 59 136 Q8 118 8 74 L8 26 Z"
+              fill="rgba(255,255,255,0.07)"
+              stroke="rgba(255,255,255,0.25)"
+              strokeWidth="1.5"
+            />
+            {/* Inner shield */}
+            <path
+              d="M59 20 L100 36 L100 72 Q100 110 59 130 Q18 110 18 72 L18 36 Z"
+              fill="rgba(255,255,255,0.05)"
+              stroke="rgba(255,255,255,0.14)"
+              strokeWidth="1"
+            />
+            {/* Scan line — clipped to inner shield */}
+            <rect
+              className="auth-scan-line"
+              x="18" y="36" width="82" height="2" rx="1"
+              fill="rgba(110,231,183,0.75)"
+              clipPath="url(#shield-clip)"
+            />
+            {/* Checkmark */}
+            <path
+              d="M42 72 L54 84 L78 55"
+              stroke="rgba(255,255,255,0.95)"
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+
+        <div className="auth-panel-label-wrap">
+          <p className="auth-panel-label" style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(7px)' }}>
+            {LABELS[idx]}
+          </p>
+          <p className="auth-panel-sublabel">Trusted verification platform</p>
+        </div>
+
+        <div className="auth-trust-badges">
+          <span className="auth-trust-badge">SOC 2</span>
+          <span className="auth-trust-badge">IAL2</span>
+          <span className="auth-trust-badge">NIST 800-63</span>
+        </div>
+      </div>
+    </div>
   );
 }

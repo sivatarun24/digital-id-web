@@ -1,93 +1,64 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { fetchActivity } from '../../api/activity';
 import './Activity.css';
 
-const MOCK_ACTIVITY = [
-  {
-    id: 1,
-    type: 'login',
-    icon: '🔑',
-    title: 'Sign in successful',
-    desc: 'Signed in from Chrome on macOS',
-    ip: '192.168.1.42',
-    location: 'San Francisco, CA',
-    timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-  },
-  {
-    id: 2,
-    type: 'verification',
-    icon: '🪪',
-    title: 'Identity verification initiated',
-    desc: "Driver's License submitted for review",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-  },
-  {
-    id: 3,
-    type: 'service',
-    icon: '🔗',
-    title: 'Service connected',
-    desc: "Connected to Lowe's military discount program",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-  },
-  {
-    id: 4,
-    type: 'security',
-    icon: '🔐',
-    title: 'Password changed',
-    desc: 'Account password updated successfully',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
-  },
-  {
-    id: 5,
-    type: 'login',
-    icon: '🔑',
-    title: 'Sign in successful',
-    desc: 'Signed in from Safari on iPhone',
-    ip: '10.0.0.15',
-    location: 'San Francisco, CA',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
-  },
-  {
-    id: 6,
-    type: 'credential',
-    icon: '🎖️',
-    title: 'Credential verification started',
-    desc: 'Military affiliation verification in progress',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
-  },
-  {
-    id: 7,
-    type: 'service',
-    icon: '🔗',
-    title: 'Service connected',
-    desc: 'Connected to T-Mobile military plan',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
-  },
-  {
-    id: 8,
-    type: 'login',
-    icon: '🔑',
-    title: 'Sign in from new device',
-    desc: 'Signed in from Firefox on Windows',
-    ip: '172.16.0.88',
-    location: 'Austin, TX',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString(),
-  },
-  {
-    id: 9,
-    type: 'security',
-    icon: '📧',
-    title: 'Email verification sent',
-    desc: 'Verification code sent to j***@email.com',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
-  },
-  {
-    id: 10,
-    type: 'login',
-    icon: '🔑',
-    title: 'Account created',
-    desc: 'Digital ID account registered successfully',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString(),
-  },
+const Icon = {
+  Key: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="7.5" cy="15.5" r="5.5" /><path d="M21 2l-9.6 9.6" /><path d="M15.5 7.5l3 3L22 7l-3-3" />
+    </svg>
+  ),
+  IdCard: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="5" width="20" height="14" rx="2" /><circle cx="8" cy="12" r="2" /><path d="M14 10h4M14 14h3" />
+    </svg>
+  ),
+  Link: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+  ),
+  Lock: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  ),
+  Award: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="6" /><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11" />
+    </svg>
+  ),
+  Inbox: () => (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
+      <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+    </svg>
+  ),
+};
+
+const TYPE_ICON = {
+  login: Icon.Key,
+  verification: Icon.IdCard,
+  service: Icon.Link,
+  security: Icon.Lock,
+  credential: Icon.Award,
+};
+
+const TYPE_COLOR = {
+  login: 'login',
+  verification: 'verify',
+  service: 'service',
+  security: 'security',
+  credential: 'credential',
+};
+
+const FILTERS = [
+  { id: 'all', label: 'All Activity' },
+  { id: 'login', label: 'Sign-ins' },
+  { id: 'verification', label: 'Verifications' },
+  { id: 'security', label: 'Security' },
+  { id: 'service', label: 'Services' },
 ];
 
 function timeAgo(isoString) {
@@ -102,21 +73,31 @@ function timeAgo(isoString) {
   return new Date(isoString).toLocaleDateString();
 }
 
+function parseUserAgent(ua) {
+  if (!ua) return '';
+  if (ua.includes('Chrome')) return 'Chrome';
+  if (ua.includes('Safari')) return 'Safari';
+  if (ua.includes('Firefox')) return 'Firefox';
+  if (ua.includes('Edge')) return 'Edge';
+  return 'Browser';
+}
+
 export default function Activity() {
+  const [activity, setActivity] = useState([]);
   const [filter, setFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const filtered =
-    filter === 'all'
-      ? MOCK_ACTIVITY
-      : MOCK_ACTIVITY.filter((a) => a.type === filter);
+  const load = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    fetchActivity(filter)
+      .then(setActivity)
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [filter]);
 
-  const typeColors = {
-    login: 'login',
-    verification: 'verify',
-    service: 'service',
-    security: 'security',
-    credential: 'credential',
-  };
+  useEffect(() => { load(); }, [load]);
 
   return (
     <div className="act-page">
@@ -128,13 +109,7 @@ export default function Activity() {
       </div>
 
       <div className="act-filters">
-        {[
-          { id: 'all', label: 'All Activity' },
-          { id: 'login', label: 'Sign-ins' },
-          { id: 'verification', label: 'Verifications' },
-          { id: 'security', label: 'Security' },
-          { id: 'service', label: 'Services' },
-        ].map((f) => (
+        {FILTERS.map((f) => (
           <button
             key={f.id}
             type="button"
@@ -146,36 +121,55 @@ export default function Activity() {
         ))}
       </div>
 
-      <div className="act-timeline">
-        {filtered.length === 0 ? (
-          <div className="act-empty">
-            <span className="act-empty-icon">📭</span>
-            <p>No activity found for this filter.</p>
-          </div>
-        ) : (
-          filtered.map((item) => (
-            <div key={item.id} className="act-item">
-              <div className={'act-dot ' + (typeColors[item.type] || '')} />
-              <div className="act-item-content">
-                <div className="act-item-top">
-                  <span className="act-item-icon">{item.icon}</span>
-                  <div className="act-item-text">
-                    <span className="act-item-title">{item.title}</span>
-                    <span className="act-item-desc">{item.desc}</span>
-                  </div>
-                  <span className="act-item-time">{timeAgo(item.timestamp)}</span>
-                </div>
-                {(item.ip || item.location) && (
-                  <div className="act-item-meta">
-                    {item.ip && <span>IP: {item.ip}</span>}
-                    {item.location && <span>{item.location}</span>}
-                  </div>
-                )}
-              </div>
+      {loading && (
+        <div className="act-loading">
+          <div className="act-spinner" />
+          <span>Loading activity…</span>
+        </div>
+      )}
+
+      {!loading && error && (
+        <div className="act-error">
+          <p>{error}</p>
+          <button type="button" className="act-retry-btn" onClick={load}>Retry</button>
+        </div>
+      )}
+
+      {!loading && !error && (
+        <div className="act-timeline">
+          {activity.length === 0 ? (
+            <div className="act-empty">
+              <span className="act-empty-icon"><Icon.Inbox /></span>
+              <p>No activity found for this filter.</p>
             </div>
-          ))
-        )}
-      </div>
+          ) : (
+            activity.map((item) => {
+              const ItemIcon = TYPE_ICON[item.type] || Icon.Lock;
+              return (
+                <div key={item.id} className="act-item">
+                  <div className={'act-dot ' + (TYPE_COLOR[item.type] || '')} />
+                  <div className="act-item-content">
+                    <div className="act-item-top">
+                      <span className="act-item-icon"><ItemIcon /></span>
+                      <div className="act-item-text">
+                        <span className="act-item-title">{item.title}</span>
+                        <span className="act-item-desc">{item.desc}</span>
+                      </div>
+                      <span className="act-item-time">{timeAgo(item.timestamp)}</span>
+                    </div>
+                    {(item.ip || item.userAgent) && (
+                      <div className="act-item-meta">
+                        {item.ip && <span>IP: {item.ip}</span>}
+                        {item.userAgent && <span>{parseUserAgent(item.userAgent)}</span>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -6,6 +6,8 @@ import GuestRoute from '../components/common/GuestRoute';
 import AuthScreen from '../components/auth/AuthScreen';
 
 const ForgotPassword = lazy(() => import('../pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('../pages/ResetPassword'));
+const VerifyEmail = lazy(() => import('../pages/VerifyEmail'));
 const Solutions = lazy(() => import('../pages/Solutions'));
 const Verify = lazy(() => import('../pages/Verify'));
 const About = lazy(() => import('../pages/About'));
@@ -66,6 +68,10 @@ export default function AppRoutes() {
       <Route path="/login" element={<GuestRoute><AuthScreen /></GuestRoute>} />
       <Route path="/register" element={<GuestRoute><AuthScreen /></GuestRoute>} />
       <Route path="/forgot-password" element={<GuestRoute><LazyPage><ForgotPassword /></LazyPage></GuestRoute>} />
+
+      {/* --- Public routes (no auth needed) --- */}
+      <Route path="/verify-email" element={<LazyPage><VerifyEmail /></LazyPage>} />
+      <Route path="/reset-password" element={<LazyPage><ResetPassword /></LazyPage>} />
 
       {/* --- Public routes --- */}
       <Route path="/solutions" element={<LazyPage><Solutions /></LazyPage>} />

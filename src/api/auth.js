@@ -140,3 +140,17 @@ export function fetchMe() {
   return request('/api/auth/me', { method: 'GET' }).then((data) => data?.user ?? data);
 }
 
+/** Verify email using the token from the verification link. */
+export function verifyEmail(token) {
+  const params = new URLSearchParams({ token });
+  return request(`/api/auth/verify-email?${params}`, { method: 'GET' });
+}
+
+/** Resend the verification email to the given address. */
+export function resendVerification(email) {
+  return request('/api/auth/resend-verification', {
+    method: 'POST',
+    body: JSON.stringify({ email: (email ?? '').trim() }),
+  });
+}
+

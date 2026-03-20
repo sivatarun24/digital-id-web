@@ -1,140 +1,196 @@
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
+import { fetchDashboard } from '../../api/dashboard';
 import './Home.css';
+
+const QUICK_ACTIONS = [
+  { path: '/verify-identity', title: 'Verify Identity',    desc: 'Upload documents and get verified' },
+  { path: '/credentials',     title: 'Credentials',        desc: 'Manage group affiliations' },
+  { path: '/wallet',          title: 'Digital Wallet',     desc: 'View your ID cards' },
+  { path: '/documents',       title: 'Documents',          desc: 'Upload and manage documents' },
+  { path: '/services',        title: 'Connected Services', desc: 'Government & commercial services' },
+  { path: '/settings',        title: 'Security Settings',  desc: 'MFA and account preferences' },
+];
+
+const VERIF_TYPES = [
+  { label: 'Military',        desc: 'Active duty & veterans' },
+  { label: 'Student',         desc: 'College enrollment' },
+  { label: 'First Responder', desc: 'EMT, fire, police' },
+  { label: 'Teacher',         desc: 'K–12 & higher ed' },
+  { label: 'Healthcare',      desc: 'Medical staff' },
+  { label: 'Government',      desc: 'Federal & state employees' },
+];
+
+const TYPE_COLOR = { login: 'login', doc: 'doc', service: 'service', security: 'security', credential: 'credential' };
+
+function timeAgo(isoString) {
+  if (!isoString) return '';
+  const diff = Date.now() - new Date(isoString).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+function ActivityDot({ type }) {
+  return <span className={`home-activity-dot ${TYPE_COLOR[type] || 'security'}`} />;
+}
 
 export default function Home() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const verificationStatus = user?.accountStatus === 'ACTIVE' ? 'verified' : 'pending';
-  const isVerified = verificationStatus === 'verified';
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    fetchDashboard().then(setStats).catch(() => {});
+  }, []);
+
+  const today = new Date().toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric',
+  });
+
+  const firstName = user?.name?.split(' ')[0] || user?.username || '';
+  const identityVerified = stats?.identityVerified ?? false;
+  const recentActivity = stats?.recentActivity ?? [];
 
   return (
     <div className="home-page">
-      <div className="home-hero">
-        <div className="home-hero-text">
-          <h2>Welcome{user?.name ? `, ${user.name}` : ''}!</h2>
-          <p className="home-greeting">
-            Manage your digital identity, verify your credentials, and securely
-            access services — all from one place.
-          </p>
+
+      {/* ── Welcome ── */}
+      <div className="home-welcome">
+        <div className="home-welcome-text">
+          <h1 className="home-welcome-title">Welcome back{firstName ? `, ${firstName}` : ''}</h1>
+          <p className="home-welcome-date">{today}</p>
         </div>
-        <div className={'home-id-badge ' + (isVerified ? 'verified' : 'pending')}>
-          <span className="home-id-badge-icon">{isVerified ? '✓' : '○'}</span>
-          <div>
-            <span className="home-id-badge-label">Identity Status</span>
-            <span className="home-id-badge-value">
-              {isVerified ? 'Verified' : 'Pending Verification'}
-            </span>
-          </div>
+        <div className={`home-status-pill ${identityVerified ? 'verified' : 'pending'}`}>
+          <span className="home-status-dot" />
+          {identityVerified ? 'Identity Verified' : 'Verification Pending'}
         </div>
       </div>
 
+      {/* ── Stats ── */}
       <div className="home-stats">
-        <div className="home-stat-card">
-          <span className="home-stat-icon">🛡️</span>
-          <span className="home-stat-number">{isVerified ? '1' : '0'}</span>
+        <div className="home-stat">
+          <span className="home-stat-value">{stats ? (identityVerified ? '1' : '0') : '—'}</span>
           <span className="home-stat-label">Verified IDs</span>
+          <span className="home-stat-sub">Government-issued</span>
         </div>
-        <div className="home-stat-card">
-          <span className="home-stat-icon">🔗</span>
-          <span className="home-stat-number">0</span>
+        <div className="home-stat">
+          <span className="home-stat-value">{stats?.serviceCount ?? '—'}</span>
           <span className="home-stat-label">Connected Services</span>
+          <span className="home-stat-sub">Active partnerships</span>
         </div>
-        <div className="home-stat-card">
-          <span className="home-stat-icon">📋</span>
-          <span className="home-stat-number">0</span>
+        <div className="home-stat">
+          <span className="home-stat-value">{stats?.credentialCount ?? '—'}</span>
           <span className="home-stat-label">Credentials</span>
+          <span className="home-stat-sub">Group affiliations</span>
+        </div>
+        <div className="home-stat">
+          <span className="home-stat-value">{stats?.docCount ?? '—'}</span>
+          <span className="home-stat-label">Documents</span>
+          <span className="home-stat-sub">Stored securely</span>
         </div>
       </div>
 
-      <h3 className="home-section-title">Quick Actions</h3>
-      <div className="home-actions">
-        <div className="home-action-card" onClick={() => navigate('/verify-identity')}>
-          <div className="home-action-icon-wrap verify">
-            <span>🪪</span>
-          </div>
-          <div className="home-action-text">
-            <span className="home-action-title">Verify Identity</span>
-            <span className="home-action-desc">
-              Upload documents and verify your identity to unlock full access.
-            </span>
-          </div>
-        </div>
-        <div className="home-action-card" onClick={() => navigate('/credentials')}>
-          <div className="home-action-icon-wrap credentials">
-            <span>📄</span>
-          </div>
-          <div className="home-action-text">
-            <span className="home-action-title">Manage Credentials</span>
-            <span className="home-action-desc">
-              View and manage your verified credentials and group affiliations.
-            </span>
-          </div>
-        </div>
-        <div className="home-action-card" onClick={() => navigate('/settings')}>
-          <div className="home-action-icon-wrap security">
-            <span>🔒</span>
-          </div>
-          <div className="home-action-text">
-            <span className="home-action-title">Security Settings</span>
-            <span className="home-action-desc">
-              Set up multi-factor authentication and manage security preferences.
-            </span>
-          </div>
-        </div>
-        <div className="home-action-card" onClick={() => navigate('/services')}>
-          <div className="home-action-icon-wrap services">
-            <span>🌐</span>
-          </div>
-          <div className="home-action-text">
-            <span className="home-action-title">Connected Services</span>
-            <span className="home-action-desc">
-              View government and commercial services connected to your identity.
-            </span>
-          </div>
-        </div>
-        <div className="home-action-card" onClick={() => navigate('/wallet')}>
-          <div className="home-action-icon-wrap wallet">
-            <span>💳</span>
-          </div>
-          <div className="home-action-text">
-            <span className="home-action-title">Digital Wallet</span>
-            <span className="home-action-desc">
-              Access your digital ID cards and verified credentials on the go.
-            </span>
-          </div>
-        </div>
-        <div className="home-action-card" onClick={() => navigate('/documents')}>
-          <div className="home-action-icon-wrap documents">
-            <span>📁</span>
-          </div>
-          <div className="home-action-text">
-            <span className="home-action-title">Documents</span>
-            <span className="home-action-desc">
-              Upload and manage your identity documents and certifications.
-            </span>
-          </div>
-        </div>
-      </div>
+      {/* ── Body ── */}
+      <div className="home-body">
+        <div className="home-main">
 
-      <h3 className="home-section-title">Supported Verifications</h3>
-      <div className="home-verifications">
-        {[
-          { icon: '🎖️', label: 'Military', desc: 'Active duty, veterans, and dependents' },
-          { icon: '🎓', label: 'Students', desc: 'College and university students' },
-          { icon: '🚒', label: 'First Responders', desc: 'EMT, firefighters, and police' },
-          { icon: '👩‍🏫', label: 'Teachers', desc: 'K–12 and higher education educators' },
-          { icon: '🏥', label: 'Healthcare', desc: 'Nurses, doctors, and medical staff' },
-          { icon: '🏛️', label: 'Government', desc: 'Federal, state, and local employees' },
-        ].map((v) => (
-          <div key={v.label} className="home-verification-chip">
-            <span className="home-verification-icon">{v.icon}</span>
-            <div>
-              <span className="home-verification-label">{v.label}</span>
-              <span className="home-verification-desc">{v.desc}</span>
+          <section className="home-section">
+            <h2 className="home-section-heading">Quick Actions</h2>
+            <div className="home-actions">
+              {QUICK_ACTIONS.map((a) => (
+                <button key={a.path} type="button" className="home-action" onClick={() => navigate(a.path)}>
+                  <div className="home-action-text">
+                    <span className="home-action-title">{a.title}</span>
+                    <span className="home-action-desc">{a.desc}</span>
+                  </div>
+                  <svg className="home-action-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                </button>
+              ))}
             </div>
-          </div>
-        ))}
+          </section>
+
+          <section className="home-section">
+            <h2 className="home-section-heading">Supported Verifications</h2>
+            <div className="home-verif-grid">
+              {VERIF_TYPES.map((v) => (
+                <div key={v.label} className="home-verif-chip">
+                  <span className="home-verif-name">{v.label}</span>
+                  <span className="home-verif-desc">{v.desc}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <div className="home-side">
+
+          <section className="home-section">
+            <h2 className="home-section-heading">Identity Status</h2>
+            <div className="home-id-card">
+              <div className="home-id-card-row">
+                <span className="home-id-card-label">Name</span>
+                <span className="home-id-card-value">{user?.name || user?.username || '—'}</span>
+              </div>
+              <div className="home-id-card-row">
+                <span className="home-id-card-label">Status</span>
+                <span className={`home-id-status ${identityVerified ? 'verified' : 'pending'}`}>
+                  {identityVerified ? 'Verified' : 'Pending'}
+                </span>
+              </div>
+              <div className="home-id-card-row">
+                <span className="home-id-card-label">Level</span>
+                <span className="home-id-card-value">
+                  {identityVerified ? 'IAL2 — Strong' : 'Not yet verified'}
+                </span>
+              </div>
+              <div className="home-id-card-row">
+                <span className="home-id-card-label">ID</span>
+                <span className="home-id-card-value home-id-mono">
+                  DID-{(user?.id || '000000').toString().padStart(6, '0')}
+                </span>
+              </div>
+              {!identityVerified && (
+                <button type="button" className="home-verify-cta" onClick={() => navigate('/verify-identity')}>
+                  Verify your identity
+                </button>
+              )}
+            </div>
+          </section>
+
+          <section className="home-section">
+            <div className="home-section-header">
+              <h2 className="home-section-heading" style={{ margin: 0 }}>Recent Activity</h2>
+              <Link to="/activity" className="home-section-link">View all</Link>
+            </div>
+            <div className="home-activity-list">
+              {recentActivity.length === 0 ? (
+                <p style={{ color: 'var(--text-3)', fontSize: '0.875rem', padding: '8px 0' }}>
+                  No activity yet.
+                </p>
+              ) : (
+                recentActivity.map((item, i) => (
+                  <div key={i} className="home-activity-item">
+                    <ActivityDot type={item.type} />
+                    <div className="home-activity-body">
+                      <span className="home-activity-label">{item.label}</span>
+                      {item.detail && <span className="home-activity-detail">{item.detail}</span>}
+                    </div>
+                    <span className="home-activity-time">{timeAgo(item.time)}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+
+        </div>
       </div>
     </div>
   );

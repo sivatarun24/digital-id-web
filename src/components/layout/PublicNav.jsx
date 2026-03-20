@@ -23,7 +23,7 @@ export default function PublicNav() {
             {l.label}
           </Link>
         ))}
-        <Link to="/login" className="pub-nav-signin">Sign In</Link>
+        <Link to="/login" className="pub-nav-signin">Sign in</Link>
       </div>
     </nav>
   );

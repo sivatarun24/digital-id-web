@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
-import { NAV_ITEMS, HEADER_NAV_COUNT } from '../../constants/navigation';
+import { HEADER_NAV, ACCOUNT_NAV } from '../../constants/navigation';
 import './Layout.css';
 
 export default function Layout({ children }) {
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -22,6 +21,10 @@ export default function Layout({ children }) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [location.pathname]);
 
   function handleLogout() {
     setMenuOpen(false);
@@ -40,20 +43,20 @@ export default function Layout({ children }) {
     <div className="layout">
       <header className="layout-header">
         <div className="layout-header-inner">
-          <div className="layout-header-left">
-            <button
-              type="button"
-              className="layout-mobile-toggle"
-              onClick={() => setMobileSidebarOpen((v) => !v)}
-              aria-label="Toggle sidebar"
-            >
-              ☰
-            </button>
-            <Link to="/home" className="layout-logo">Digital ID</Link>
-          </div>
 
+          {/* Logo */}
+          <Link to="/home" className="layout-logo">
+            <span className="layout-logo-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+            </span>
+            Digital ID
+          </Link>
+
+          {/* Desktop nav */}
           <nav className="layout-header-nav">
-            {NAV_ITEMS.slice(0, HEADER_NAV_COUNT).map((item) => (
+            {HEADER_NAV.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
@@ -64,15 +67,21 @@ export default function Layout({ children }) {
             ))}
           </nav>
 
+          {/* Right side */}
           <div className="layout-header-right">
+            {/* Notification bell */}
             <Link
               to="/notifications"
               className={'layout-notif-btn' + (location.pathname === '/notifications' ? ' active' : '')}
               aria-label="Notifications"
             >
-              🔔
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
             </Link>
 
+            {/* Avatar / dropdown */}
             <div className="layout-user-menu" ref={menuRef}>
               <button
                 type="button"
@@ -90,64 +99,120 @@ export default function Layout({ children }) {
                     <span className="layout-dropdown-email">{user?.email}</span>
                   </div>
                   <div className="layout-dropdown-divider" />
-                  {NAV_ITEMS.map((item) => (
+                  {ACCOUNT_NAV.map((item) => (
                     <Link
                       key={item.path}
                       to={item.path}
                       className={'layout-dropdown-item' + (location.pathname === item.path ? ' active' : '')}
                       onClick={() => setMenuOpen(false)}
                     >
-                      <span className="layout-dropdown-item-icon">{item.icon}</span>
                       {item.label}
                     </Link>
                   ))}
                   <div className="layout-dropdown-divider" />
-                  <button type="button" className="layout-dropdown-item layout-dropdown-logout" onClick={handleLogout}>
-                    <span className="layout-dropdown-item-icon">🚪</span>
-                    Logout
+                  <button
+                    type="button"
+                    className="layout-dropdown-item layout-dropdown-logout"
+                    onClick={handleLogout}
+                  >
+                    Sign out
                   </button>
                 </div>
               )}
             </div>
+
+            {/* Mobile hamburger */}
+            <button
+              type="button"
+              className="layout-mobile-toggle"
+              onClick={() => setMobileNavOpen((v) => !v)}
+              aria-label="Toggle menu"
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                {mobileNavOpen
+                  ? <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>
+                  : <><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></>
+                }
+              </svg>
+            </button>
           </div>
         </div>
-      </header>
 
-      <div className="layout-body">
-        <aside className={'layout-sidebar' + (sidebarCollapsed ? ' collapsed' : '') + (mobileSidebarOpen ? ' mobile-open' : '')}>
-          <button
-            type="button"
-            className="layout-sidebar-toggle"
-            onClick={() => setSidebarCollapsed((v) => !v)}
-            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {sidebarCollapsed ? '›' : '‹'}
-          </button>
-          <nav className="layout-sidebar-nav">
-            {NAV_ITEMS.map((item) => (
+        {/* Mobile nav drawer */}
+        {mobileNavOpen && (
+          <nav className="layout-mobile-nav">
+            {[...HEADER_NAV, ...ACCOUNT_NAV].map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
-                className={'layout-sidebar-link' + (location.pathname === item.path ? ' active' : '')}
-                title={sidebarCollapsed ? item.label : undefined}
+                className={'layout-mobile-link' + (location.pathname === item.path ? ' active' : '')}
               >
-                <span className="layout-sidebar-icon">{item.icon}</span>
-                {!sidebarCollapsed && <span className="layout-sidebar-label">{item.label}</span>}
+                {item.label}
               </Link>
             ))}
           </nav>
-        </aside>
-
-        {mobileSidebarOpen && (
-          <div className="layout-sidebar-backdrop" onClick={() => setMobileSidebarOpen(false)} />
         )}
+      </header>
 
-        <main className="layout-main">{children}</main>
-      </div>
+      <main className="layout-main">{children}</main>
 
       <footer className="layout-footer">
         <div className="layout-footer-inner">
-          <p>© {new Date().getFullYear()} Digital ID. All rights reserved.</p>
+
+          {/* Brand */}
+          <div className="layout-footer-brand">
+            <div className="layout-footer-logo">
+              <span className="layout-footer-logo-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+              </span>
+              Digital ID
+            </div>
+            <p className="layout-footer-tagline">
+              Secure, verified digital identity<br />for everyone.
+            </p>
+            <div className="layout-footer-badges">
+              <span className="layout-footer-badge">SOC 2</span>
+              <span className="layout-footer-badge">IAL2</span>
+              <span className="layout-footer-badge">256-bit AES</span>
+            </div>
+          </div>
+
+          {/* Features */}
+          <div className="layout-footer-col">
+            <span className="layout-footer-col-title">Features</span>
+            {HEADER_NAV.map((item) => (
+              <Link key={item.path} to={item.path} className="layout-footer-link">{item.label}</Link>
+            ))}
+          </div>
+
+          {/* Account */}
+          <div className="layout-footer-col">
+            <span className="layout-footer-col-title">Account</span>
+            {ACCOUNT_NAV.map((item) => (
+              <Link key={item.path} to={item.path} className="layout-footer-link">{item.label}</Link>
+            ))}
+          </div>
+
+          {/* Security */}
+          <div className="layout-footer-col">
+            <span className="layout-footer-col-title">Security</span>
+            <span className="layout-footer-text">End-to-end encrypted</span>
+            <span className="layout-footer-text">Zero-knowledge storage</span>
+            <span className="layout-footer-text">Auto-delete after verify</span>
+            <span className="layout-footer-text">NIST 800-63 compliant</span>
+          </div>
+
+        </div>
+
+        <div className="layout-footer-bottom">
+          <span>© {new Date().getFullYear()} Digital ID. All rights reserved.</span>
+          <div className="layout-footer-bottom-links">
+            <span className="layout-footer-bottom-link">Privacy Policy</span>
+            <span className="layout-footer-bottom-link">Terms of Service</span>
+            <span className="layout-footer-bottom-link">Contact</span>
+          </div>
         </div>
       </footer>
     </div>
