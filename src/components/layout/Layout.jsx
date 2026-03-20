@@ -7,10 +7,12 @@ import './Layout.css';
 export default function Layout({ children }) {
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [mobileNavOpenPath, setMobileNavOpenPath] = useState(null);
   const menuRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  const mobileNavOpen = mobileNavOpenPath === location.pathname;
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -21,10 +23,6 @@ export default function Layout({ children }) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  useEffect(() => {
-    setMobileNavOpen(false);
-  }, [location.pathname]);
 
   function handleLogout() {
     setMenuOpen(false);
@@ -125,7 +123,7 @@ export default function Layout({ children }) {
             <button
               type="button"
               className="layout-mobile-toggle"
-              onClick={() => setMobileNavOpen((v) => !v)}
+              onClick={() => setMobileNavOpenPath((p) => p === location.pathname ? null : location.pathname)}
               aria-label="Toggle menu"
             >
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

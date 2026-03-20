@@ -93,14 +93,13 @@ export default function Notifications() {
   const [error, setError]                 = useState(null);
 
   const load = useCallback(() => {
-    setLoading(true);
     fetchNotifications()
       .then(({ notifications: list, unreadCount: count }) => {
         setNotifications(list);
         setUnreadCount(count);
+        setLoading(false);
       })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+      .catch((err) => { setError(err.message); setLoading(false); });
   }, []);
 
   useEffect(() => { load(); }, [load]);

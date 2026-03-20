@@ -53,7 +53,7 @@ export default function ConnectedServices() {
         await disconnectService(svc.id);
         setServices((prev) => prev.map((s) => s.id === svc.id ? { ...s, connected: false } : s));
       } else {
-        const result = await connectService(svc.id);
+        await connectService(svc.id);
         setServices((prev) => prev.map((s) =>
           s.id === svc.id
             ? { ...s, connected: true, connectedAt: new Date().toISOString().split('T')[0], lastUsed: new Date().toISOString().split('T')[0] }

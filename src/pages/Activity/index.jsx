@@ -89,15 +89,15 @@ export default function Activity() {
   const [error, setError] = useState(null);
 
   const load = useCallback(() => {
-    setLoading(true);
-    setError(null);
     fetchActivity(filter)
-      .then(setActivity)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+      .then((data) => { setActivity(data); setError(null); setLoading(false); })
+      .catch((err) => { setError(err.message); setLoading(false); });
   }, [filter]);
 
   useEffect(() => { load(); }, [load]);
+
+  function handleFilterChange(id) { setLoading(true); setError(null); setFilter(id); }
+  function handleRetry() { setLoading(true); setError(null); load(); }
 
   return (
     <div className="act-page">
@@ -114,7 +114,7 @@ export default function Activity() {
             key={f.id}
             type="button"
             className={'act-filter' + (filter === f.id ? ' active' : '')}
-            onClick={() => setFilter(f.id)}
+            onClick={() => handleFilterChange(f.id)}
           >
             {f.label}
           </button>
@@ -131,7 +131,7 @@ export default function Activity() {
       {!loading && error && (
         <div className="act-error">
           <p>{error}</p>
-          <button type="button" className="act-retry-btn" onClick={load}>Retry</button>
+          <button type="button" className="act-retry-btn" onClick={handleRetry}>Retry</button>
         </div>
       )}
 

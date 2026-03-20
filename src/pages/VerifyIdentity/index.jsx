@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import useAuth from '../../hooks/useAuth';
 import { fetchVerificationStatus, submitVerification } from '../../api/verifyIdentity';
 import './VerifyIdentity.css';
 
@@ -34,7 +33,6 @@ const ID_TYPES = [
 const ID_TYPE_LABELS = Object.fromEntries(ID_TYPES.map((t) => [t.id, t.label]));
 
 export default function VerifyIdentity() {
-  const { user } = useAuth();
   const [step, setStep]               = useState(0);
   const [selectedType, setSelectedType] = useState(null);
   const [frontFile, setFrontFile]     = useState(null);
