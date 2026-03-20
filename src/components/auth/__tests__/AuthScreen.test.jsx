@@ -9,15 +9,15 @@ describe('AuthScreen', () => {
     it('renders login form at /login', () => {
       renderWithProviders(<AuthScreen />, { route: '/login' });
 
-      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/secure digital identity/i);
-      expect(screen.getByLabelText('Username, Email, or Phone')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/welcome back/i);
+      expect(screen.getByLabelText(/username, email, or phone/i)).toBeInTheDocument();
       expect(screen.getByLabelText('Password')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
     });
 
-    it('shows Sign Up button to switch to register', () => {
+    it('shows Create account button to switch to register', () => {
       renderWithProviders(<AuthScreen />, { route: '/login' });
-      expect(screen.getByRole('button', { name: /sign up/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /create account/i })).toBeInTheDocument();
     });
 
     it('shows forgot password link', () => {
@@ -34,9 +34,9 @@ describe('AuthScreen', () => {
         auth: { login: loginFn, register: vi.fn() },
       });
 
-      await user.type(screen.getByLabelText('Username, Email, or Phone'), 'testuser');
+      await user.type(screen.getByLabelText(/username, email, or phone/i), 'testuser');
       await user.type(screen.getByLabelText('Password'), 'Pass@123');
-      await user.click(screen.getByRole('button', { name: /login/i }));
+      await user.click(screen.getByRole('button', { name: /sign in/i }));
 
       expect(loginFn).toHaveBeenCalledWith({
         identifier: 'testuser',
@@ -53,9 +53,9 @@ describe('AuthScreen', () => {
         auth: { login: loginFn, register: vi.fn() },
       });
 
-      await user.type(screen.getByLabelText('Username, Email, or Phone'), 'bad');
+      await user.type(screen.getByLabelText(/username, email, or phone/i), 'bad');
       await user.type(screen.getByLabelText('Password'), 'wrong');
-      await user.click(screen.getByRole('button', { name: /login/i }));
+      await user.click(screen.getByRole('button', { name: /sign in/i }));
 
       expect(await screen.findByText('Invalid credentials')).toBeInTheDocument();
     });
@@ -65,7 +65,8 @@ describe('AuthScreen', () => {
     it('renders register form at /register', () => {
       renderWithProviders(<AuthScreen />, { route: '/register' });
 
-      expect(screen.getByText('Create your secure digital identity.')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/create your account/i);
+      expect(screen.getByText(/secure, verified identity/i)).toBeInTheDocument();
       expect(screen.getByLabelText('Username')).toBeInTheDocument();
       expect(screen.getByLabelText('Full name')).toBeInTheDocument();
       expect(screen.getByLabelText('Email')).toBeInTheDocument();
@@ -79,9 +80,9 @@ describe('AuthScreen', () => {
       expect(screen.getByText(/at least 1 uppercase/i)).toBeInTheDocument();
     });
 
-    it('shows back to login button', () => {
+    it('shows back to sign in button', () => {
       renderWithProviders(<AuthScreen />, { route: '/register' });
-      expect(screen.getByRole('button', { name: /back to login/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /back to sign in/i })).toBeInTheDocument();
     });
   });
 

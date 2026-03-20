@@ -38,7 +38,7 @@ function renderRoute(route, auth = guestAuth) {
 describe('AppRoutes', () => {
   it('redirects / to /login for guests', () => {
     renderRoute('/');
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/secure digital identity/i);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/welcome back/i);
   });
 
   it('redirects / to /home for authenticated users', async () => {
@@ -48,7 +48,7 @@ describe('AppRoutes', () => {
 
   it('shows auth screen at /login for guests', () => {
     renderRoute('/login');
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/secure digital identity/i);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/welcome back/i);
   });
 
   it('redirects /login to /home for authenticated users', async () => {
@@ -58,11 +58,13 @@ describe('AppRoutes', () => {
 
   it('redirects protected routes to /login for guests', () => {
     renderRoute('/home');
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/secure digital identity/i);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/welcome back/i);
   });
 
   it('renders public routes for anyone', async () => {
     renderRoute('/about');
-    expect(await screen.findByText(/about/i)).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /trusted by millions/i }),
+    ).toBeInTheDocument();
   });
 });

@@ -1,22 +1,46 @@
-import { describe, it, expect } from 'vitest';
-import { screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { screen, waitFor } from '@testing-library/react';
 import { renderAuthenticated } from '../../../test/helpers';
 import Wallet from '../index';
 
+const { mockFetchWallet } = vi.hoisted(() => ({
+  mockFetchWallet: vi.fn(),
+}));
+
+vi.mock('../../../api/dashboard', () => ({
+  fetchDashboard: vi.fn(),
+  fetchWallet: () => mockFetchWallet(),
+}));
+
 describe('Wallet Page', () => {
-  it('renders the page heading', () => {
+  beforeEach(() => {
+    mockFetchWallet.mockResolvedValue({
+      identityVerified: true,
+      credentials: [],
+      name: 'Test User',
+      userId: 1,
+    });
+  });
+
+  async function renderWallet() {
     renderAuthenticated(<Wallet />);
+    await waitFor(() => expect(mockFetchWallet).toHaveBeenCalled());
+  }
+
+  it('renders the page heading', async () => {
+    await renderWallet();
     expect(screen.getByText('Digital Wallet')).toBeInTheDocument();
   });
 
-  it('renders digital ID cards', () => {
-    renderAuthenticated(<Wallet />);
+  it('renders digital ID cards', async () => {
+    await renderWallet();
+    expect(screen.getByText('Test User')).toBeInTheDocument();
     const cards = document.querySelectorAll('.wallet-card');
     expect(cards.length).toBeGreaterThan(0);
   });
 
-  it('displays user name on cards', () => {
-    renderAuthenticated(<Wallet />);
+  it('displays user name on cards', async () => {
+    await renderWallet();
     expect(screen.getAllByText(/test user/i).length).toBeGreaterThan(0);
   });
 });

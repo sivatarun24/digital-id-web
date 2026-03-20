@@ -7,7 +7,7 @@ import Home from '../index';
 describe('Home Page', () => {
   it('renders welcome message with user name', () => {
     renderAuthenticated(<Home />);
-    expect(screen.getByText(/welcome, test user/i)).toBeInTheDocument();
+    expect(screen.getByText(/welcome back, test\b/i)).toBeInTheDocument();
   });
 
   it('shows verified identity status for ACTIVE user', () => {
@@ -19,7 +19,7 @@ describe('Home Page', () => {
     renderAuthenticated(<Home />, {
       user: { ...MOCK_USER, accountStatus: 'PENDING' },
     });
-    expect(screen.getByText('Pending Verification')).toBeInTheDocument();
+    expect(screen.getByText('Verification Pending')).toBeInTheDocument();
   });
 
   it('renders stat cards', () => {
@@ -31,7 +31,7 @@ describe('Home Page', () => {
   it('renders all quick action cards', () => {
     renderAuthenticated(<Home />);
     expect(screen.getByText('Verify Identity')).toBeInTheDocument();
-    expect(screen.getByText('Manage Credentials')).toBeInTheDocument();
+    expect(screen.getAllByText('Credentials').length).toBeGreaterThan(0);
     expect(screen.getByText('Security Settings')).toBeInTheDocument();
     expect(screen.getByText('Digital Wallet')).toBeInTheDocument();
   });
@@ -40,7 +40,7 @@ describe('Home Page', () => {
     renderAuthenticated(<Home />);
     expect(screen.getByText('Supported Verifications')).toBeInTheDocument();
     expect(screen.getByText('Military')).toBeInTheDocument();
-    expect(screen.getByText('Students')).toBeInTheDocument();
+    expect(screen.getByText('Student')).toBeInTheDocument();
   });
 
   it('navigates on quick action click', async () => {

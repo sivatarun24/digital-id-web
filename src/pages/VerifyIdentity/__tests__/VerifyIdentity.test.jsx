@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderAuthenticated, MOCK_USER } from '../../../test/helpers';
@@ -6,34 +6,56 @@ import VerifyIdentity from '../index';
 
 const PENDING_USER = { ...MOCK_USER, accountStatus: 'PENDING' };
 
+const { mockFetchVerificationStatus } = vi.hoisted(() => ({
+  mockFetchVerificationStatus: vi.fn(),
+}));
+
+vi.mock('../../../api/verifyIdentity', () => ({
+  fetchVerificationStatus: () => mockFetchVerificationStatus(),
+  submitVerification: vi.fn(),
+}));
+
 describe('VerifyIdentity Page', () => {
   describe('when already verified', () => {
-    it('shows verified banner for ACTIVE user', () => {
-      renderAuthenticated(<VerifyIdentity />);
-      expect(screen.getByText('Identity Verified')).toBeInTheDocument();
+    beforeEach(() => {
+      mockFetchVerificationStatus.mockResolvedValue({
+        status: 'verified',
+        submittedAt: '2024-06-01',
+        idType: 'drivers_license',
+      });
     });
 
-    it('shows verification details', () => {
+    it('shows verified banner for ACTIVE user', async () => {
       renderAuthenticated(<VerifyIdentity />);
-      expect(screen.getByText('Verification Level')).toBeInTheDocument();
+      expect(await screen.findByText('Identity Verified')).toBeInTheDocument();
+    });
+
+    it('shows verification details', async () => {
+      renderAuthenticated(<VerifyIdentity />);
+      expect(await screen.findByText('Verification Level')).toBeInTheDocument();
       expect(screen.getByText('IAL2 — Strong Identity')).toBeInTheDocument();
     });
   });
 
   describe('when not yet verified', () => {
-    it('renders the verification page heading', () => {
-      renderAuthenticated(<VerifyIdentity />, { user: PENDING_USER });
-      expect(screen.getByText('Verify Your Identity')).toBeInTheDocument();
+    beforeEach(() => {
+      mockFetchVerificationStatus.mockResolvedValue({ status: 'none' });
     });
 
-    it('renders the stepper', () => {
+    it('renders the verification page heading', async () => {
       renderAuthenticated(<VerifyIdentity />, { user: PENDING_USER });
-      expect(screen.getByText('ID Type')).toBeInTheDocument();
-      expect(screen.getByText('Upload')).toBeInTheDocument();
+      expect(await screen.findByText('Verify Your Identity')).toBeInTheDocument();
     });
 
-    it('shows ID type selection on first step', () => {
+    it('renders the stepper', async () => {
       renderAuthenticated(<VerifyIdentity />, { user: PENDING_USER });
+      expect(await screen.findByText('ID Type')).toBeInTheDocument();
+      expect(screen.getByText('Selfie')).toBeInTheDocument();
+    });
+
+    it('shows ID type selection on first step', async () => {
+      renderAuthenticated(<VerifyIdentity />, { user: PENDING_USER });
+      await screen.findByText('Select Your Document Type');
       expect(screen.getByText("Driver's License")).toBeInTheDocument();
       expect(screen.getByText('Passport Card')).toBeInTheDocument();
     });
@@ -42,7 +64,7 @@ describe('VerifyIdentity Page', () => {
       const user = userEvent.setup();
       renderAuthenticated(<VerifyIdentity />, { user: PENDING_USER });
 
-      const continueBtn = screen.getByRole('button', { name: /continue/i });
+      const continueBtn = await screen.findByRole('button', { name: /continue/i });
       expect(continueBtn).toBeDisabled();
 
       const driverOption = screen.getByText("Driver's License");
