@@ -123,6 +123,21 @@ const DOCUMENT_TYPES = [
 
 const TYPE_MAP = Object.fromEntries(DOCUMENT_TYPES.map((t) => [t.id, t]));
 
+// Per-type metadata fields shown in the upload modal.
+// issuerLabel: null  → hide the issuer field
+// showExpiry: false  → hide expiry field
+const DOC_TYPE_FIELDS = {
+  drivers_license: { issuerLabel: 'State',         issuerPlaceholder: 'e.g. California',    showExpiry: true,  expiryLabel: 'Expiry date' },
+  passport:        { issuerLabel: 'Country',        issuerPlaceholder: 'e.g. United States',  showExpiry: true,  expiryLabel: 'Expiry date' },
+  state_id:        { issuerLabel: 'State',          issuerPlaceholder: 'e.g. Texas',           showExpiry: true,  expiryLabel: 'Expiry date' },
+  military_id:     { issuerLabel: 'Branch',         issuerPlaceholder: 'e.g. U.S. Army',       showExpiry: true,  expiryLabel: 'Expiry date' },
+  passport_card:   { issuerLabel: 'Country',        issuerPlaceholder: 'e.g. United States',   showExpiry: true,  expiryLabel: 'Expiry date' },
+  birth_cert:      { issuerLabel: 'State / County', issuerPlaceholder: 'e.g. Cook County, IL', showExpiry: false },
+  ssn_card:        { issuerLabel: null,                                                         showExpiry: false },
+  utility_bill:    { issuerLabel: 'Provider',       issuerPlaceholder: 'e.g. PG&E',            showExpiry: true,  expiryLabel: 'Bill date'   },
+  tax_return:      { issuerLabel: 'Tax year',       issuerPlaceholder: 'e.g. 2023',            showExpiry: false },
+};
+
 function getDocIcon(documentType) {
   return TYPE_MAP[documentType]?.Icon ?? Icon.File;
 }
@@ -131,13 +146,25 @@ function getDocLabel(documentType) {
   return TYPE_MAP[documentType]?.label ?? documentType;
 }
 
+const SIDE_LABELS = ['Front', 'Back', 'Page 1', 'Page 2', 'Other'];
+
 function UploadModal({ onClose, onSubmit }) {
   const [selectedDocType, setSelectedDocType] = useState(null);
-  const [uploadFile, setUploadFile]           = useState(null);
-  const [issuer, setIssuer]                   = useState('');
-  const [expiresAt, setExpiresAt]             = useState('');
-  const [submitting, setSubmitting]           = useState(false);
-  const [submitError, setSubmitError]         = useState(null);
+  // files: [{ file: File, side: string }]
+  const [files, setFiles]         = useState([]);
+  const [issuer, setIssuer]       = useState('');
+  const [expiresAt, setExpiresAt] = useState('');
+
+  const typeFields = selectedDocType ? (DOC_TYPE_FIELDS[selectedDocType] ?? { issuerLabel: 'Issuer', showExpiry: true, expiryLabel: 'Expiry date' }) : null;
+
+  function selectDocType(id) {
+    setSelectedDocType(id);
+    setIssuer('');
+    setExpiresAt('');
+  }
+  const [submitting, setSubmitting]   = useState(false);
+  const [progress, setProgress]       = useState(null); // '1 of 2'
+  const [submitError, setSubmitError] = useState(null);
 
   useEffect(() => {
     function handleKey(e) { if (e.key === 'Escape') onClose(); }
@@ -150,25 +177,45 @@ function UploadModal({ onClose, onSubmit }) {
     return () => { document.body.style.overflow = ''; };
   }, []);
 
+  function addFiles(newFileList) {
+    const incoming = Array.from(newFileList).map((file, i) => ({
+      file,
+      side: SIDE_LABELS[files.length + i] ?? 'Other',
+    }));
+    setFiles((prev) => [...prev, ...incoming]);
+  }
+
+  function removeFile(index) {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function updateSide(index, side) {
+    setFiles((prev) => prev.map((f, i) => i === index ? { ...f, side } : f));
+  }
+
   const handleSubmit = async () => {
     setSubmitError(null);
     setSubmitting(true);
     try {
-      await onSubmit({
-        documentType: selectedDocType,
-        issuer: issuer.trim() || null,
-        expiresAt: expiresAt || null,
-        file: uploadFile,
-      });
+      for (let i = 0; i < files.length; i++) {
+        setProgress(`${i + 1} of ${files.length}`);
+        await onSubmit({
+          documentType: selectedDocType,
+          issuer: issuer.trim() || null,
+          expiresAt: expiresAt || null,
+          file: files[i].file,
+        });
+      }
       onClose();
     } catch (err) {
       setSubmitError(err.message);
     } finally {
       setSubmitting(false);
+      setProgress(null);
     }
   };
 
-  const canSubmit = uploadFile && selectedDocType && !submitting;
+  const canSubmit = files.length > 0 && selectedDocType && !submitting;
 
   return (
     <div className="docs-modal-backdrop" onClick={onClose}>
@@ -177,7 +224,7 @@ function UploadModal({ onClose, onSubmit }) {
         <div className="docs-modal-header">
           <div>
             <h3 className="docs-modal-title">Upload Document</h3>
-            <p className="docs-modal-subtitle">Choose a document type and upload a clear photo or scan.</p>
+            <p className="docs-modal-subtitle">Choose a document type and upload one or more files (e.g. front &amp; back).</p>
           </div>
           <button type="button" className="docs-modal-close" onClick={onClose} aria-label="Close">
             <Icon.X />
@@ -192,7 +239,7 @@ function UploadModal({ onClose, onSubmit }) {
                 key={dt.id}
                 type="button"
                 className={'docs-type-chip' + (selectedDocType === dt.id ? ' selected' : '')}
-                onClick={() => setSelectedDocType(dt.id)}
+                onClick={() => selectDocType(dt.id)}
               >
                 <span className="docs-type-chip-icon"><dt.Icon /></span>
                 <span>{dt.label}</span>
@@ -203,61 +250,94 @@ function UploadModal({ onClose, onSubmit }) {
             ))}
           </div>
 
-          <div className={'docs-drop-zone' + (selectedDocType ? '' : ' disabled')}>
-            {uploadFile ? (
-              <div className="docs-drop-file">
-                <span className="docs-drop-file-icon"><Icon.File /></span>
-                <span className="docs-drop-file-name">{uploadFile.name}</span>
-                <button type="button" className="docs-drop-file-remove" onClick={() => setUploadFile(null)}>
-                  <Icon.XSmall />
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="docs-drop-icon-wrap"><Icon.Upload /></div>
-                <span className="docs-drop-text">
-                  {selectedDocType ? 'Drag & drop your file here' : 'Select a document type first'}
-                </span>
-                {selectedDocType && (
-                  <label className="docs-choose-btn">
-                    Browse files
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      onChange={(e) => setUploadFile(e.target.files[0] || null)}
-                      hidden
-                    />
-                  </label>
-                )}
-                <span className="docs-drop-hint">JPEG, PNG, PDF — max 10 MB</span>
-              </>
-            )}
+          {/* File list */}
+          {files.length > 0 && (
+            <div className="docs-file-list">
+              {files.map((entry, i) => (
+                <div key={i} className="docs-file-row">
+                  <span className="docs-file-row-icon"><Icon.File /></span>
+                  <span className="docs-file-row-name" title={entry.file.name}>{entry.file.name}</span>
+                  <select
+                    className="docs-file-row-side"
+                    value={entry.side}
+                    onChange={(e) => updateSide(i, e.target.value)}
+                    disabled={submitting}
+                  >
+                    {SIDE_LABELS.map((s) => <option key={s}>{s}</option>)}
+                  </select>
+                  <button
+                    type="button"
+                    className="docs-file-row-remove"
+                    onClick={() => removeFile(i)}
+                    disabled={submitting}
+                    aria-label="Remove file"
+                  >
+                    <Icon.XSmall />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Drop zone / add more */}
+          <div className={'docs-drop-zone' + (selectedDocType ? '' : ' disabled') + (files.length > 0 ? ' compact' : '')}>
+            <>
+              <div className="docs-drop-icon-wrap"><Icon.Upload /></div>
+              <span className="docs-drop-text">
+                {selectedDocType
+                  ? files.length > 0 ? 'Add more files' : 'Drag & drop your files here'
+                  : 'Select a document type first'}
+              </span>
+              {selectedDocType && (
+                <label className="docs-choose-btn">
+                  {files.length > 0 ? '+ Add files' : 'Browse files'}
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    multiple
+                    onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }}
+                    hidden
+                  />
+                </label>
+              )}
+              <span className="docs-drop-hint">JPEG, PNG, PDF — max 10 MB each</span>
+            </>
           </div>
 
-          <div className="docs-modal-fields">
-            <div className="docs-field">
-              <label className="docs-field-label" htmlFor="doc-issuer">Issuer <span className="docs-field-optional">(optional)</span></label>
-              <input
-                id="doc-issuer"
-                type="text"
-                className="docs-field-input"
-                placeholder="e.g. California DMV"
-                value={issuer}
-                onChange={(e) => setIssuer(e.target.value)}
-                maxLength={150}
-              />
+          {typeFields && (typeFields.issuerLabel || typeFields.showExpiry) && (
+            <div className="docs-modal-fields">
+              {typeFields.issuerLabel && (
+                <div className="docs-field">
+                  <label className="docs-field-label" htmlFor="doc-issuer">
+                    {typeFields.issuerLabel} <span className="docs-field-optional">(optional)</span>
+                  </label>
+                  <input
+                    id="doc-issuer"
+                    type="text"
+                    className="docs-field-input"
+                    placeholder={typeFields.issuerPlaceholder ?? ''}
+                    value={issuer}
+                    onChange={(e) => setIssuer(e.target.value)}
+                    maxLength={150}
+                  />
+                </div>
+              )}
+              {typeFields.showExpiry && (
+                <div className="docs-field">
+                  <label className="docs-field-label" htmlFor="doc-expires">
+                    {typeFields.expiryLabel} <span className="docs-field-optional">(optional)</span>
+                  </label>
+                  <input
+                    id="doc-expires"
+                    type="date"
+                    className="docs-field-input"
+                    value={expiresAt}
+                    onChange={(e) => setExpiresAt(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
-            <div className="docs-field">
-              <label className="docs-field-label" htmlFor="doc-expires">Expiry date <span className="docs-field-optional">(optional)</span></label>
-              <input
-                id="doc-expires"
-                type="date"
-                className="docs-field-input"
-                value={expiresAt}
-                onChange={(e) => setExpiresAt(e.target.value)}
-              />
-            </div>
-          </div>
+          )}
 
           {submitError && (
             <p className="docs-submit-error">{submitError}</p>
@@ -272,7 +352,11 @@ function UploadModal({ onClose, onSubmit }) {
             disabled={!canSubmit}
             onClick={handleSubmit}
           >
-            {submitting ? 'Uploading…' : 'Upload & Submit'}
+            {submitting
+              ? `Uploading ${progress}…`
+              : files.length > 1
+                ? `Upload ${files.length} Files`
+                : 'Upload & Submit'}
           </button>
         </div>
 
@@ -305,6 +389,7 @@ export default function Documents() {
   const handleUploadSubmit = async (payload) => {
     const newDoc = await uploadDocument(payload);
     setDocuments((prev) => [newDoc, ...prev]);
+    return newDoc;
   };
 
   const handleDelete = async (id) => {

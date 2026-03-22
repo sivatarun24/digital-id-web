@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { fetchVerificationStatus, submitVerification } from '../../api/verifyIdentity';
 import './VerifyIdentity.css';
 
@@ -42,6 +42,53 @@ export default function VerifyIdentity() {
   const [submitError, setSubmitError] = useState(null);
   const [verification, setVerification] = useState(null); // null = loading, {status} = loaded
   const [statusLoading, setStatusLoading] = useState(true);
+
+  const [cameraActive, setCameraActive]   = useState(false);
+  const [cameraError, setCameraError]     = useState(null);
+  const videoRef  = useRef(null);
+  const streamRef = useRef(null);
+  const canvasRef = useRef(null);
+
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    setCameraActive(false);
+  }, []);
+
+  const startCamera = useCallback(async () => {
+    setCameraError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+      streamRef.current = stream;
+      if (videoRef.current) videoRef.current.srcObject = stream;
+      setCameraActive(true);
+    } catch {
+      setCameraError('Camera access denied. Please allow camera permission and try again.');
+    }
+  }, []);
+
+  const capturePhoto = useCallback(() => {
+    const video  = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const file = new File([blob], 'selfie.jpg', { type: 'image/jpeg' });
+        setSelfieFile(file);
+        stopCamera();
+      }
+    }, 'image/jpeg', 0.92);
+  }, [stopCamera]);
+
+  // Stop camera if user navigates away from selfie step
+  useEffect(() => {
+    if (step !== 2) stopCamera();
+  }, [step, stopCamera]);
 
   useEffect(() => {
     fetchVerificationStatus()
@@ -221,7 +268,9 @@ export default function VerifyIdentity() {
             <p className="vi-card-desc">We'll compare your selfie to the photo on your ID to confirm your identity.</p>
             <div className="vi-selfie-area">
               <div className="vi-selfie-frame">
-                {selfieFile ? (
+                {cameraActive ? (
+                  <video ref={videoRef} autoPlay playsInline muted className="vi-selfie-preview" />
+                ) : selfieFile ? (
                   <img src={URL.createObjectURL(selfieFile)} alt="Selfie preview" className="vi-selfie-preview" />
                 ) : (
                   <>
@@ -230,10 +279,24 @@ export default function VerifyIdentity() {
                   </>
                 )}
               </div>
-              <label className="vi-selfie-btn">
-                {selfieFile ? 'Retake Selfie' : 'Capture Selfie'}
-                <input type="file" accept="image/*" capture="user" onChange={(e) => setSelfieFile(e.target.files[0] || null)} hidden />
-              </label>
+              <canvas ref={canvasRef} hidden />
+              {cameraError && <p className="vi-camera-error">{cameraError}</p>}
+              <div className="vi-selfie-actions">
+                {cameraActive ? (
+                  <>
+                    <button type="button" className="vi-selfie-btn vi-selfie-btn-capture" onClick={capturePhoto}>
+                      Take Photo
+                    </button>
+                    <button type="button" className="vi-btn-outline vi-selfie-btn-cancel" onClick={stopCamera}>
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button type="button" className="vi-selfie-btn" onClick={startCamera}>
+                    {selfieFile ? 'Retake Selfie' : 'Open Camera'}
+                  </button>
+                )}
+              </div>
             </div>
             <div className="vi-tips">
               <h4>Tips for a good selfie</h4>
