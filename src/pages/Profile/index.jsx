@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import useAuth from '../../hooks/useAuth';
+import { updateProfile } from '../../api/auth';
 import './Profile.css';
 
 const Icon = {
@@ -18,11 +20,68 @@ const Icon = {
       <rect x="8" y="2" width="8" height="4" rx="1" />
     </svg>
   ),
+  Edit: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  ),
 };
 
+const GENDER_OPTIONS = ['MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY'];
+
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const isVerified = user?.accountStatus === 'ACTIVE';
+
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDob, setEditDob] = useState('');
+  const [editGender, setEditGender] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [editSuccess, setEditSuccess] = useState('');
+
+  function startEditing() {
+    setEditName(user?.name || '');
+    setEditDob(user?.dateOfBirth || '');
+    setEditGender(user?.gender || '');
+    setEditError('');
+    setEditSuccess('');
+    setEditing(true);
+  }
+
+  function cancelEditing() {
+    setEditing(false);
+    setEditError('');
+    setEditSuccess('');
+  }
+
+  async function handleSave(e) {
+    e.preventDefault();
+    if (!editName.trim()) {
+      setEditError('Full name is required.');
+      return;
+    }
+    setEditLoading(true);
+    setEditError('');
+    setEditSuccess('');
+    try {
+      const payload = {
+        name: editName.trim(),
+        dateOfBirth: editDob || null,
+        gender: editGender || null,
+      };
+      await updateProfile(payload);
+      await refreshUser();
+      setEditSuccess('Profile updated successfully.');
+      setEditing(false);
+    } catch (err) {
+      setEditError(err.message || 'Something went wrong');
+    } finally {
+      setEditLoading(false);
+    }
+  }
 
   const personalFields = [
     { label: 'Full Name', value: user?.name },
@@ -76,22 +135,85 @@ export default function Profile() {
       </div>
 
       <div className="profile-section">
-        <h3 className="profile-section-title">Personal Information</h3>
-        <div className="profile-card">
-          <div className="profile-rows">
-            {personalFields.map(
-              (f) =>
-                f.value != null && (
-                  <div className="profile-row" key={f.label}>
-                    <span className="profile-label">{f.label}</span>
-                    <span className={'profile-value ' + (f.className || '')}>
-                      {f.value}
-                    </span>
-                  </div>
-                ),
-            )}
-          </div>
+        <div className="profile-section-header">
+          <h3 className="profile-section-title">Personal Information</h3>
+          {!editing && (
+            <button type="button" className="profile-edit-btn" onClick={startEditing}>
+              <Icon.Edit /> Edit
+            </button>
+          )}
         </div>
+
+        {editSuccess && !editing && (
+          <p className="profile-success-msg">{editSuccess}</p>
+        )}
+
+        {editing ? (
+          <div className="profile-card">
+            <form className="profile-edit-form" onSubmit={handleSave}>
+              <div className="profile-edit-field">
+                <label htmlFor="edit-name">Full Name</label>
+                <input
+                  id="edit-name"
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Full name"
+                  required
+                />
+              </div>
+              <div className="profile-edit-field">
+                <label htmlFor="edit-dob">Date of Birth</label>
+                <input
+                  id="edit-dob"
+                  type="date"
+                  value={editDob}
+                  onChange={(e) => setEditDob(e.target.value)}
+                />
+              </div>
+              <div className="profile-edit-field">
+                <label htmlFor="edit-gender">Gender</label>
+                <select
+                  id="edit-gender"
+                  value={editGender}
+                  onChange={(e) => setEditGender(e.target.value)}
+                >
+                  <option value="">Select gender</option>
+                  {GENDER_OPTIONS.map((g) => (
+                    <option key={g} value={g}>
+                      {g.replace(/_/g, ' ')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {editError && <p className="profile-edit-error">{editError}</p>}
+              <div className="profile-edit-actions">
+                <button type="submit" className="profile-edit-save" disabled={editLoading}>
+                  {editLoading ? 'Saving…' : 'Save changes'}
+                </button>
+                <button type="button" className="profile-edit-cancel" onClick={cancelEditing} disabled={editLoading}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : (
+          <div className="profile-card">
+            <div className="profile-rows">
+              {personalFields.map(
+                (f) =>
+                  f.value != null && (
+                    <div className="profile-row" key={f.label}>
+                      <span className="profile-label">{f.label}</span>
+                      <span className={'profile-value ' + (f.className || '')}>
+                        {f.value}
+                      </span>
+                    </div>
+                  ),
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="profile-section">

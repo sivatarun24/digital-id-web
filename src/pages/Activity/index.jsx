@@ -82,22 +82,41 @@ function parseUserAgent(ua) {
   return 'Browser';
 }
 
+const PAGE_SIZE = 20;
+
 export default function Activity() {
   const [activity, setActivity] = useState([]);
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [offset, setOffset] = useState(0);
   const [error, setError] = useState(null);
 
-  const load = useCallback(() => {
-    fetchActivity(filter)
-      .then((data) => { setActivity(data); setError(null); setLoading(false); })
-      .catch((err) => { setError(err.message); setLoading(false); });
+  const load = useCallback((currentFilter, reset = true) => {
+    if (reset) setLoading(true);
+    const off = reset ? 0 : offset;
+    fetchActivity({ type: currentFilter, limit: PAGE_SIZE, offset: off })
+      .then(({ activity: list, hasMore: more }) => {
+        setActivity((prev) => reset ? list : [...prev, ...list]);
+        setHasMore(!!more);
+        setOffset(off + list.length);
+        setError(null);
+        setLoading(false);
+        setLoadingMore(false);
+      })
+      .catch((err) => { setError(err.message); setLoading(false); setLoadingMore(false); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    setOffset(0);
+    load(filter, true);
+  }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  function handleFilterChange(id) { setLoading(true); setError(null); setFilter(id); }
-  function handleRetry() { setLoading(true); setError(null); load(); }
+  function handleFilterChange(id) { setError(null); setFilter(id); }
+  function handleRetry() { setLoading(true); setError(null); load(filter, true); }
+  function handleLoadMore() { setLoadingMore(true); load(filter, false); }
 
   return (
     <div className="act-page">
@@ -136,39 +155,51 @@ export default function Activity() {
       )}
 
       {!loading && !error && (
-        <div className="act-timeline">
-          {activity.length === 0 ? (
-            <div className="act-empty">
-              <span className="act-empty-icon"><Icon.Inbox /></span>
-              <p>No activity found for this filter.</p>
-            </div>
-          ) : (
-            activity.map((item) => {
-              const ItemIcon = TYPE_ICON[item.type] || Icon.Lock;
-              return (
-                <div key={item.id} className="act-item">
-                  <div className={'act-dot ' + (TYPE_COLOR[item.type] || '')} />
-                  <div className="act-item-content">
-                    <div className="act-item-top">
-                      <span className="act-item-icon"><ItemIcon /></span>
-                      <div className="act-item-text">
-                        <span className="act-item-title">{item.title}</span>
-                        <span className="act-item-desc">{item.desc}</span>
+        <>
+          <div className="act-timeline">
+            {activity.length === 0 ? (
+              <div className="act-empty">
+                <span className="act-empty-icon"><Icon.Inbox /></span>
+                <p>No activity found for this filter.</p>
+              </div>
+            ) : (
+              activity.map((item) => {
+                const ItemIcon = TYPE_ICON[item.type] || Icon.Lock;
+                return (
+                  <div key={item.id} className="act-item">
+                    <div className={'act-dot ' + (TYPE_COLOR[item.type] || '')} />
+                    <div className="act-item-content">
+                      <div className="act-item-top">
+                        <span className="act-item-icon"><ItemIcon /></span>
+                        <div className="act-item-text">
+                          <span className="act-item-title">{item.title}</span>
+                          <span className="act-item-desc">{item.desc}</span>
+                        </div>
+                        <span className="act-item-time">{timeAgo(item.timestamp)}</span>
                       </div>
-                      <span className="act-item-time">{timeAgo(item.timestamp)}</span>
+                      {(item.ip || item.userAgent) && (
+                        <div className="act-item-meta">
+                          {item.ip && <span>IP: {item.ip}</span>}
+                          {item.userAgent && <span>{parseUserAgent(item.userAgent)}</span>}
+                        </div>
+                      )}
                     </div>
-                    {(item.ip || item.userAgent) && (
-                      <div className="act-item-meta">
-                        {item.ip && <span>IP: {item.ip}</span>}
-                        {item.userAgent && <span>{parseUserAgent(item.userAgent)}</span>}
-                      </div>
-                    )}
                   </div>
-                </div>
-              );
-            })
+                );
+              })
+            )}
+          </div>
+          {hasMore && (
+            <button
+              type="button"
+              className="act-load-more"
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+            >
+              {loadingMore ? 'Loading…' : 'Load more'}
+            </button>
           )}
-        </div>
+        </>
       )}
     </div>
   );

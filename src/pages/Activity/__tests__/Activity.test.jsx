@@ -13,17 +13,21 @@ vi.mock('../../../api/activity', () => ({
 
 describe('Activity Page', () => {
   beforeEach(() => {
-    mockFetchActivity.mockResolvedValue([
-      {
-        id: 1,
-        type: 'login',
-        title: 'Sign in successful',
-        desc: 'New session from Chrome',
-        timestamp: new Date().toISOString(),
-        ip: '127.0.0.1',
-        userAgent: 'Chrome',
-      },
-    ]);
+    mockFetchActivity.mockResolvedValue({
+      activity: [
+        {
+          id: 1,
+          type: 'login',
+          title: 'Sign in successful',
+          desc: 'New session from Chrome',
+          timestamp: new Date().toISOString(),
+          ip: '127.0.0.1',
+          userAgent: 'Chrome',
+        },
+      ],
+      hasMore: false,
+      total: 1,
+    });
   });
 
   async function renderActivity() {

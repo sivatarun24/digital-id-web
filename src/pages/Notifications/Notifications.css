@@ -215,3 +215,20 @@
   border-radius: 50%; animation: notif-spin 0.7s linear infinite;
 }
 @keyframes notif-spin { to { transform: rotate(360deg); } }
+
+.notif-load-more {
+  display: block;
+  margin: 16px auto 0;
+  padding: 9px 24px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background var(--t);
+}
+.notif-load-more:hover:not(:disabled) { background: var(--bg); }
+.notif-load-more:disabled { opacity: 0.5; cursor: not-allowed; }

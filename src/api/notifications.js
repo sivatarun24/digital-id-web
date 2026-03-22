@@ -22,8 +22,10 @@ async function request(path, options = {}) {
   return data;
 }
 
-export function fetchNotifications() {
-  return request('/api/notifications');
+export function fetchNotifications({ type, limit = 50, offset = 0 } = {}) {
+  const params = new URLSearchParams({ limit, offset });
+  if (type && type !== 'all' && type !== 'unread') params.set('type', type);
+  return request(`/api/notifications?${params}`);
 }
 
 export function toggleRead(id) {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import useAuth from '../../hooks/useAuth';
-import { fetchCredentials, startCredentialVerification } from '../../api/credentials';
+import { fetchCredentials, startCredentialVerification, submitCredentialDocument } from '../../api/credentials';
 import './Credentials.css';
 
 const Icon = {
@@ -24,7 +24,7 @@ const CREDENTIAL_CATEGORIES = [
   { id: 'healthcare',     Icon: Icon.Healthcare,     label: 'Healthcare Worker', desc: 'Nurses, doctors, pharmacists, and medical staff',           status: 'available' },
   { id: 'government',     Icon: Icon.Government,     label: 'Government Employee',desc:'Federal, state, and local government employees',            status: 'available' },
   { id: 'senior',         Icon: Icon.Senior,         label: 'Senior',            desc: 'Age 55 and older verification',                            status: 'available' },
-  { id: 'nonprofit',      Icon: Icon.Nonprofit,      label: 'Nonprofit Worker',  desc: 'Employees of registered nonprofit organizations',           status: 'coming_soon' },
+  { id: 'nonprofit',      Icon: Icon.Nonprofit,      label: 'Nonprofit Worker',  desc: 'Employees of registered nonprofit organizations',           status: 'available' },
 ];
 
 export default function Credentials() {
@@ -34,6 +34,9 @@ export default function Credentials() {
   const [expandedId, setExpandedId]           = useState(null);
   const [loading, setLoading]                 = useState(true);
   const [starting, setStarting]               = useState(null);
+  const [submitting, setSubmitting]           = useState(null); // credentialType being submitted
+  const [submitError, setSubmitError]         = useState({});  // { [credentialType]: errorMsg }
+  const [submitSuccess, setSubmitSuccess]     = useState({});  // { [credentialType]: true }
 
   const isVerified = user?.accountStatus === 'ACTIVE';
 
@@ -54,6 +57,21 @@ export default function Credentials() {
   const filtered = activeTab === 'all'
     ? CREDENTIAL_CATEGORIES
     : CREDENTIAL_CATEGORIES.filter((c) => c.status === activeTab);
+
+  async function handleSubmitDoc(credentialType, file) {
+    if (!file) return;
+    setSubmitting(credentialType);
+    setSubmitError((prev) => ({ ...prev, [credentialType]: null }));
+    setSubmitSuccess((prev) => ({ ...prev, [credentialType]: false }));
+    try {
+      await submitCredentialDocument(credentialType, file);
+      setSubmitSuccess((prev) => ({ ...prev, [credentialType]: true }));
+    } catch (err) {
+      setSubmitError((prev) => ({ ...prev, [credentialType]: err.message }));
+    } finally {
+      setSubmitting(null);
+    }
+  }
 
   async function handleStart(credentialType) {
     setStarting(credentialType);
@@ -157,6 +175,31 @@ export default function Credentials() {
                         <p>Status: <strong>{statusLabel(userCred.status)}</strong></p>
                         {userCred.startedAt && <p>Started: {userCred.startedAt}</p>}
                         {userCred.verifiedAt && <p>Verified: {userCred.verifiedAt}</p>}
+                        {userCred.status === 'pending' && !submitSuccess[cred.id] && (
+                          <div className="cred-upload-section">
+                            <h4>Upload Supporting Document</h4>
+                            <p>Provide proof of your affiliation (JPEG, PNG, WebP, or PDF, max 10 MB).</p>
+                            <label className="cred-upload-label">
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,application/pdf"
+                                className="cred-upload-input"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleSubmitDoc(cred.id, file);
+                                }}
+                                disabled={submitting === cred.id}
+                              />
+                              {submitting === cred.id ? 'Uploading…' : 'Choose file'}
+                            </label>
+                            {submitError[cred.id] && (
+                              <p className="cred-upload-error">{submitError[cred.id]}</p>
+                            )}
+                          </div>
+                        )}
+                        {submitSuccess[cred.id] && (
+                          <p className="cred-upload-success">Document submitted. Your credential is under review.</p>
+                        )}
                       </>
                     ) : (
                       <>

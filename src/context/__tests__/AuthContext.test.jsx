@@ -7,6 +7,7 @@ vi.mock('../../api/auth', () => ({
   login: vi.fn(),
   register: vi.fn(),
   fetchMe: vi.fn(),
+  logout: vi.fn(),
   clearSession: vi.fn(),
 }));
 
@@ -97,16 +98,17 @@ describe('AuthContext', () => {
   it('logout clears session and resets user', async () => {
     const mockUser = { id: 1, name: 'Test' };
     authApi.fetchMe.mockResolvedValue(mockUser);
+    authApi.logout.mockResolvedValue(undefined);
 
     const { result } = renderHook(() => useAuth(), { wrapper });
 
     await waitFor(() => expect(result.current.isAuthed).toBe(true));
 
-    act(() => {
-      result.current.logout();
+    await act(async () => {
+      await result.current.logout();
     });
 
-    expect(authApi.clearSession).toHaveBeenCalled();
+    expect(authApi.logout).toHaveBeenCalled();
     expect(result.current.user).toBeNull();
     expect(result.current.isAuthed).toBe(false);
   });

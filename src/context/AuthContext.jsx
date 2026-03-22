@@ -4,7 +4,7 @@ import {
   login as apiLogin,
   register as apiRegister,
   fetchMe,
-  clearSession,
+  logout as apiLogout,
 } from '../api/auth';
 
 export const AuthContext = createContext(null);
@@ -31,8 +31,8 @@ export default function AuthProvider({ children }) {
     await apiRegister(payload);
   }, []);
 
-  const logout = useCallback(() => {
-    clearSession();
+  const logout = useCallback(async () => {
+    await apiLogout();
     setUser(null);
   }, []);
 

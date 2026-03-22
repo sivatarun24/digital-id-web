@@ -85,29 +85,47 @@ function formatTime(isoString) {
   return new Date(isoString).toLocaleDateString();
 }
 
+const PAGE_SIZE = 20;
+
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount]     = useState(0);
   const [filter, setFilter]               = useState('all');
   const [loading, setLoading]             = useState(true);
+  const [loadingMore, setLoadingMore]     = useState(false);
+  const [hasMore, setHasMore]             = useState(false);
+  const [offset, setOffset]               = useState(0);
   const [error, setError]                 = useState(null);
 
-  const load = useCallback(() => {
-    fetchNotifications()
-      .then(({ notifications: list, unreadCount: count }) => {
-        setNotifications(list);
+  const load = useCallback((currentFilter, reset = true) => {
+    if (reset) setLoading(true);
+    const off = reset ? 0 : offset;
+    fetchNotifications({ type: currentFilter, limit: PAGE_SIZE, offset: off })
+      .then(({ notifications: list, unreadCount: count, hasMore: more }) => {
+        setNotifications((prev) => reset ? list : [...prev, ...list]);
         setUnreadCount(count);
+        setHasMore(!!more);
+        setOffset(off + list.length);
         setLoading(false);
+        setLoadingMore(false);
       })
-      .catch((err) => { setError(err.message); setLoading(false); });
-  }, []);
+      .catch((err) => { setError(err.message); setLoading(false); setLoadingMore(false); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    setOffset(0);
+    load(filter, true);
+  }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleLoadMore() {
+    setLoadingMore(true);
+    load(filter, false);
+  }
 
   const filtered =
-    filter === 'all'     ? notifications
-    : filter === 'unread' ? notifications.filter((n) => !n.read)
-    : notifications.filter((n) => n.type === filter);
+    filter === 'unread' ? notifications.filter((n) => !n.read)
+    : notifications;
 
   async function handleToggleRead(id) {
     try {
@@ -190,44 +208,56 @@ export default function Notifications() {
             <p>You're all caught up!</p>
           </div>
         ) : (
-          <div className="notif-list">
-            {filtered.map((notif) => {
-              const NotifIcon = TYPE_ICON[notif.type] || Icon.Megaphone;
-              return (
-                <div key={notif.id} className={'notif-item' + (notif.read ? '' : ' unread')}>
-                  <div className="notif-item-left">
-                    <span className="notif-item-icon"><NotifIcon /></span>
-                    {!notif.read && <span className="notif-unread-dot" />}
-                  </div>
-                  <div className="notif-item-content">
-                    <div className="notif-item-top">
-                      <span className="notif-item-title">{notif.title}</span>
-                      <span className="notif-item-time">{formatTime(notif.time)}</span>
+          <>
+            <div className="notif-list">
+              {filtered.map((notif) => {
+                const NotifIcon = TYPE_ICON[notif.type] || Icon.Megaphone;
+                return (
+                  <div key={notif.id} className={'notif-item' + (notif.read ? '' : ' unread')}>
+                    <div className="notif-item-left">
+                      <span className="notif-item-icon"><NotifIcon /></span>
+                      {!notif.read && <span className="notif-unread-dot" />}
                     </div>
-                    <p className="notif-item-message">{notif.message}</p>
+                    <div className="notif-item-content">
+                      <div className="notif-item-top">
+                        <span className="notif-item-title">{notif.title}</span>
+                        <span className="notif-item-time">{formatTime(notif.time)}</span>
+                      </div>
+                      <p className="notif-item-message">{notif.message}</p>
+                    </div>
+                    <div className="notif-item-actions">
+                      <button
+                        type="button"
+                        className="notif-action-btn"
+                        onClick={() => handleToggleRead(notif.id)}
+                        title={notif.read ? 'Mark unread' : 'Mark read'}
+                      >
+                        {notif.read ? <Icon.Circle /> : <Icon.CircleFill />}
+                      </button>
+                      <button
+                        type="button"
+                        className="notif-action-btn dismiss"
+                        onClick={() => handleDismiss(notif.id)}
+                        title="Dismiss"
+                      >
+                        <Icon.X />
+                      </button>
+                    </div>
                   </div>
-                  <div className="notif-item-actions">
-                    <button
-                      type="button"
-                      className="notif-action-btn"
-                      onClick={() => handleToggleRead(notif.id)}
-                      title={notif.read ? 'Mark unread' : 'Mark read'}
-                    >
-                      {notif.read ? <Icon.Circle /> : <Icon.CircleFill />}
-                    </button>
-                    <button
-                      type="button"
-                      className="notif-action-btn dismiss"
-                      onClick={() => handleDismiss(notif.id)}
-                      title="Dismiss"
-                    >
-                      <Icon.X />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+            {hasMore && filter !== 'unread' && (
+              <button
+                type="button"
+                className="notif-load-more"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+              >
+                {loadingMore ? 'Loading…' : 'Load more'}
+              </button>
+            )}
+          </>
         )
       )}
     </div>

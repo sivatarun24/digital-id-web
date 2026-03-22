@@ -18,7 +18,8 @@ async function request(path, options = {}) {
   return data;
 }
 
-export function fetchActivity(type = 'all') {
-  const params = type && type !== 'all' ? `?type=${type}` : '';
-  return request(`/api/activity${params}`);
+export function fetchActivity({ type = 'all', limit = 50, offset = 0 } = {}) {
+  const params = new URLSearchParams({ limit, offset });
+  if (type && type !== 'all') params.set('type', type);
+  return request(`/api/activity?${params}`);
 }

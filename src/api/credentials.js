@@ -25,3 +25,12 @@ export function fetchCredentials() {
 export function startCredentialVerification(credentialType) {
   return request(`/api/credentials/${credentialType}/start`, { method: 'POST' });
 }
+
+export function submitCredentialDocument(credentialType, file) {
+  const form = new FormData();
+  form.append('file', file);
+  return request(`/api/credentials/${credentialType}/submit`, {
+    method: 'POST',
+    body: form,
+  });
+}

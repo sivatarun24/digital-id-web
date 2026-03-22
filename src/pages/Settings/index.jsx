@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Settings.css';
-import { changePassword } from '../../api/auth';
+import { changePassword, deleteAccount, twoFactorSetup, twoFactorEnable, twoFactorDisable } from '../../api/auth';
+import useAuth from '../../hooks/useAuth';
 import { validateChangePassword, PASSWORD_HINT, getPasswordRuleStatus } from '../../utils/passwordValidation';
 
 const Icon = {
@@ -64,12 +66,49 @@ const Icon = {
 };
 
 export default function Settings() {
+  const { logout, user, refreshUser } = useAuth();
+  const navigate = useNavigate();
+
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [changePwdError, setChangePwdError] = useState('');
   const [changePwdMessage, setChangePwdMessage] = useState('');
   const [changePwdLoading, setChangePwdLoading] = useState(false);
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // 2FA state
+  const [show2FAModal, setShow2FAModal] = useState(false);
+  const [twoFAStep, setTwoFAStep] = useState('setup'); // 'setup' | 'verify' | 'disable'
+  const [twoFAQrUri, setTwoFAQrUri] = useState('');
+  const [twoFASecret, setTwoFASecret] = useState('');
+  const [twoFACode, setTwoFACode] = useState('');
+  const [twoFALoading, setTwoFALoading] = useState(false);
+  const [twoFAError, setTwoFAError] = useState('');
+
+
+  async function handleDeleteAccount(e) {
+    e.preventDefault();
+    if (!deletePassword) {
+      setDeleteError('Password is required to confirm deletion.');
+      return;
+    }
+    setDeleteLoading(true);
+    setDeleteError('');
+    try {
+      await deleteAccount(deletePassword);
+      await logout();
+      navigate('/login', { replace: true });
+    } catch (err) {
+      setDeleteError(err.message || 'Something went wrong');
+    } finally {
+      setDeleteLoading(false);
+    }
+  }
 
   async function handleChangePassword(e) {
     e.preventDefault();
@@ -90,6 +129,64 @@ export default function Settings() {
       setChangePwdError(err.message || 'Something went wrong');
     } finally {
       setChangePwdLoading(false);
+    }
+  }
+
+  async function openSetup2FA() {
+    setTwoFAError('');
+    setTwoFACode('');
+    setTwoFALoading(true);
+    try {
+      const data = await twoFactorSetup();
+      setTwoFAQrUri(data.qrUri);
+      setTwoFASecret(data.secret);
+      setTwoFAStep('setup');
+      setShow2FAModal(true);
+    } catch (err) {
+      setTwoFAError(err.message || 'Failed to start 2FA setup');
+    } finally {
+      setTwoFALoading(false);
+    }
+  }
+
+  async function handleEnable2FA(e) {
+    e.preventDefault();
+    if (!twoFACode.trim()) { setTwoFAError('Enter the 6-digit code from your authenticator app.'); return; }
+    setTwoFALoading(true);
+    setTwoFAError('');
+    try {
+      await twoFactorEnable(twoFACode.trim());
+      await refreshUser();
+      setShow2FAModal(false);
+      setTwoFACode('');
+    } catch (err) {
+      setTwoFAError(err.message || 'Invalid code');
+    } finally {
+      setTwoFALoading(false);
+    }
+  }
+
+  async function openDisable2FA() {
+    setTwoFAError('');
+    setTwoFACode('');
+    setTwoFAStep('disable');
+    setShow2FAModal(true);
+  }
+
+  async function handleDisable2FA(e) {
+    e.preventDefault();
+    if (!twoFACode.trim()) { setTwoFAError('Enter the 6-digit code from your authenticator app.'); return; }
+    setTwoFALoading(true);
+    setTwoFAError('');
+    try {
+      await twoFactorDisable(twoFACode.trim());
+      await refreshUser();
+      setShow2FAModal(false);
+      setTwoFACode('');
+    } catch (err) {
+      setTwoFAError(err.message || 'Invalid code');
+    } finally {
+      setTwoFALoading(false);
     }
   }
 
@@ -175,8 +272,29 @@ export default function Settings() {
                 <span className="settings-hint">Add an extra layer of security to your account</span>
               </div>
             </div>
-            <span className="settings-badge off">Off</span>
+            {user?.twoFactorEnabled ? (
+              <button
+                type="button"
+                className="settings-action settings-action-danger"
+                onClick={openDisable2FA}
+                disabled={twoFALoading}
+              >
+                Disable
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="settings-action"
+                onClick={openSetup2FA}
+                disabled={twoFALoading}
+              >
+                {twoFALoading ? 'Loading…' : 'Set up'}
+              </button>
+            )}
           </div>
+          {twoFAError && !show2FAModal && (
+            <p className="settings-cp-error" style={{ margin: '0 18px 14px' }}>{twoFAError}</p>
+          )}
 
           <div className="settings-item">
             <div className="settings-item-header">
@@ -267,10 +385,158 @@ export default function Settings() {
                 <span className="settings-hint">Permanently remove your Digital ID and all associated data</span>
               </div>
             </div>
-            <button type="button" className="settings-action settings-action-danger">Delete</button>
+            <button
+              type="button"
+              className="settings-action settings-action-danger"
+              onClick={() => { setShowDeleteModal(true); setDeleteError(''); setDeletePassword(''); }}
+            >
+              Delete
+            </button>
           </div>
         </div>
       </div>
+
+      {showDeleteModal && (
+        <div className="settings-modal-backdrop" onClick={() => setShowDeleteModal(false)}>
+          <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="settings-modal-title">Delete Account</h3>
+            <p className="settings-modal-body">
+              This will permanently delete your Digital ID and all associated data — documents, credentials, and connections. This cannot be undone.
+            </p>
+            <form onSubmit={handleDeleteAccount}>
+              <div className="settings-cp-field">
+                <label htmlFor="delete-password">Enter your password to confirm</label>
+                <input
+                  id="delete-password"
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="Your current password"
+                  autoComplete="current-password"
+                  required
+                />
+              </div>
+              {deleteError && <p className="settings-cp-error">{deleteError}</p>}
+              <div className="settings-modal-actions">
+                <button
+                  type="submit"
+                  className="settings-modal-confirm-danger"
+                  disabled={deleteLoading}
+                >
+                  {deleteLoading ? 'Deleting…' : 'Delete my account'}
+                </button>
+                <button
+                  type="button"
+                  className="settings-action"
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={deleteLoading}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {show2FAModal && (
+        <div className="settings-modal-backdrop" onClick={() => { setShow2FAModal(false); setTwoFAError(''); setTwoFACode(''); }}>
+          <div className="settings-modal settings-modal-2fa" onClick={(e) => e.stopPropagation()}>
+            {twoFAStep === 'setup' && (
+              <>
+                <h3 className="settings-modal-title-neutral">Set Up Two-Factor Authentication</h3>
+                <p className="settings-modal-body">
+                  Scan the QR code below with your authenticator app (e.g. Google Authenticator, Authy), then enter the 6-digit code to confirm.
+                </p>
+                <div className="twofa-qr-block">
+                  <p className="twofa-qr-label">Scan with your app:</p>
+                  <a
+                    className="twofa-qr-link"
+                    href={twoFAQrUri}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Open in authenticator app
+                  </a>
+                  <p className="twofa-manual-label">Or enter this code manually:</p>
+                  <code className="twofa-secret">{twoFASecret}</code>
+                </div>
+                <form onSubmit={handleEnable2FA}>
+                  <div className="settings-cp-field">
+                    <label htmlFor="twofa-code">Authenticator code</label>
+                    <input
+                      id="twofa-code"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={6}
+                      value={twoFACode}
+                      onChange={(e) => setTwoFACode(e.target.value.replace(/\D/g, ''))}
+                      placeholder="000000"
+                      autoComplete="one-time-code"
+                      required
+                    />
+                  </div>
+                  {twoFAError && <p className="settings-cp-error">{twoFAError}</p>}
+                  <div className="settings-modal-actions">
+                    <button type="submit" className="settings-cp-submit" disabled={twoFALoading}>
+                      {twoFALoading ? 'Verifying…' : 'Enable 2FA'}
+                    </button>
+                    <button
+                      type="button"
+                      className="settings-action"
+                      onClick={() => { setShow2FAModal(false); setTwoFAError(''); setTwoFACode(''); }}
+                      disabled={twoFALoading}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+
+            {twoFAStep === 'disable' && (
+              <>
+                <h3 className="settings-modal-title">Disable Two-Factor Authentication</h3>
+                <p className="settings-modal-body">
+                  Enter the current 6-digit code from your authenticator app to disable 2FA.
+                </p>
+                <form onSubmit={handleDisable2FA}>
+                  <div className="settings-cp-field">
+                    <label htmlFor="twofa-disable-code">Authenticator code</label>
+                    <input
+                      id="twofa-disable-code"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={6}
+                      value={twoFACode}
+                      onChange={(e) => setTwoFACode(e.target.value.replace(/\D/g, ''))}
+                      placeholder="000000"
+                      autoComplete="one-time-code"
+                      required
+                    />
+                  </div>
+                  {twoFAError && <p className="settings-cp-error">{twoFAError}</p>}
+                  <div className="settings-modal-actions">
+                    <button type="submit" className="settings-modal-confirm-danger" disabled={twoFALoading}>
+                      {twoFALoading ? 'Disabling…' : 'Disable 2FA'}
+                    </button>
+                    <button
+                      type="button"
+                      className="settings-action"
+                      onClick={() => { setShow2FAModal(false); setTwoFAError(''); setTwoFACode(''); }}
+                      disabled={twoFALoading}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

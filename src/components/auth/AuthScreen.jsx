@@ -44,6 +44,7 @@ export default function AuthScreen() {
   const [message, setMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const isRegistering = mode === 'register';
   const [resendLoading, setResendLoading] = useState(false);
@@ -87,6 +88,11 @@ export default function AuthScreen() {
           setLoading(false);
           return;
         }
+        if (!termsAccepted) {
+          setError('You must accept the Terms of Service and Privacy Policy to continue.');
+          setLoading(false);
+          return;
+        }
         await register({
           username: username.trim(),
           name: name.trim(),
@@ -96,6 +102,7 @@ export default function AuthScreen() {
           gender,
           password,
           role: 'USER',
+          termsAccepted: true,
         });
         setRegisteredEmail(email.trim());
         setMode('verify-email');
@@ -307,6 +314,21 @@ export default function AuthScreen() {
                   </ul>
                 </div>
               </div>
+
+              <label className="auth-terms-label">
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={(e) => setTermsAccepted(e.target.checked)}
+                  required
+                />
+                <span>
+                  I agree to the{' '}
+                  <span className="auth-terms-link">Terms of Service</span>
+                  {' '}and{' '}
+                  <span className="auth-terms-link">Privacy Policy</span>
+                </span>
+              </label>
 
               {error && <p className="auth-error">{error}</p>}
               {message && !error && <p className="auth-message">{message}</p>}
