@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchDocuments, uploadDocument, replaceDocument, deleteDocument, openDocumentFile } from '../../api/documents';
 import './Documents.css';
 
@@ -382,7 +382,6 @@ function UploadModal({ onClose, onSubmit }) {
 /* ── Document group card ──────────────────────────────────── */
 function DocGroupCard({ docType, docs, onView, onReplace, onDelete, replacingId, deletingId, viewingId }) {
   const [expanded, setExpanded] = useState(true);
-  const DocIcon = getDocIcon(docType);
   const label   = getDocLabel(docType);
   const status  = groupStatus(docs);
 
@@ -394,7 +393,7 @@ function DocGroupCard({ docType, docs, onView, onReplace, onDelete, replacingId,
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
       >
-        <span className="docs-card-icon"><DocIcon /></span>
+        <span className="docs-card-icon">{getDocIcon(docType)()}</span>
         <span className="docs-group-title">{label}</span>
         <span className="docs-group-count">{docs.length} {docs.length === 1 ? 'file' : 'files'}</span>
         <span className={'docs-status ' + status}>{STATUS_LABEL[status]}</span>

@@ -230,7 +230,7 @@ describe('Documents Page', () => {
   });
 
   it('submit button is disabled until a doc type and file are selected', async () => {
-    const user = await openModal();
+    await openModal();
     expect(screen.getByRole('button', { name: /upload & submit/i })).toBeDisabled();
   });
 

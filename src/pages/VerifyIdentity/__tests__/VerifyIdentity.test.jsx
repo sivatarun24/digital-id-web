@@ -36,7 +36,7 @@ beforeEach(() => {
   });
 
   // jsdom doesn't implement URL.createObjectURL — needed for selfie preview
-  global.URL.createObjectURL = vi.fn(() => 'blob:mock-selfie-url');
+  globalThis.URL.createObjectURL = vi.fn(() => 'blob:mock-selfie-url');
 
   // Make canvas 2d context a no-op so capturePhoto doesn't throw in jsdom
   HTMLCanvasElement.prototype.getContext = vi.fn(() => ({ drawImage: vi.fn() }));
@@ -48,7 +48,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  delete global.URL.createObjectURL;
+  delete globalThis.URL.createObjectURL;
   HTMLCanvasElement.prototype.getContext = undefined;
   HTMLCanvasElement.prototype.toBlob = undefined;
 });
