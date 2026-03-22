@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import { HEADER_NAV, ACCOUNT_NAV } from '../../constants/navigation';
@@ -6,26 +7,48 @@ import './Layout.css';
 
 export default function Layout({ children }) {
   const { user, logout } = useAuth();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [mobileNavOpenPath, setMobileNavOpenPath] = useState(null);
-  const menuRef = useRef(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const dropdownRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
 
-  const mobileNavOpen = mobileNavOpenPath === location.pathname;
-
+  // Close avatar dropdown on outside click
   useEffect(() => {
-    function handleClickOutside(e) {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setMenuOpen(false);
+    if (!dropdownOpen) return;
+    function onClickOutside(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
       }
     }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [dropdownOpen]);
+
+  // Close mobile nav on Escape
+  useEffect(() => {
+    if (!mobileOpen) return;
+    function onKey(e) { if (e.key === 'Escape') setMobileOpen(false); }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [mobileOpen]);
+
+  // Close mobile nav on route change — derived state pattern (useState comparison during render)
+  const [trackedPath, setTrackedPath] = useState(location.pathname);
+  if (trackedPath !== location.pathname) {
+    setTrackedPath(location.pathname);
+    setMobileOpen(false);
+  }
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
 
   function handleLogout() {
-    setMenuOpen(false);
+    setDropdownOpen(false);
+    setMobileOpen(false);
     logout();
     navigate('/login');
   }
@@ -67,6 +90,7 @@ export default function Layout({ children }) {
 
           {/* Right side */}
           <div className="layout-header-right">
+
             {/* Notification bell */}
             <Link
               to="/notifications"
@@ -79,18 +103,19 @@ export default function Layout({ children }) {
               </svg>
             </Link>
 
-            {/* Avatar / dropdown */}
-            <div className="layout-user-menu" ref={menuRef}>
+            {/* Avatar / dropdown — desktop only */}
+            <div className="layout-user-menu layout-desktop-only" ref={dropdownRef}>
               <button
                 type="button"
                 className="layout-avatar"
-                onClick={() => setMenuOpen((v) => !v)}
+                onClick={() => setDropdownOpen((v) => !v)}
                 aria-label="User menu"
+                aria-expanded={dropdownOpen}
               >
                 {initials}
               </button>
 
-              {menuOpen && (
+              {dropdownOpen && (
                 <div className="layout-dropdown">
                   <div className="layout-dropdown-header">
                     <span className="layout-dropdown-name">{user?.name || user?.username}</span>
@@ -102,7 +127,7 @@ export default function Layout({ children }) {
                       key={item.path}
                       to={item.path}
                       className={'layout-dropdown-item' + (location.pathname === item.path ? ' active' : '')}
-                      onClick={() => setMenuOpen(false)}
+                      onClick={() => setDropdownOpen(false)}
                     >
                       {item.label}
                     </Link>
@@ -123,11 +148,12 @@ export default function Layout({ children }) {
             <button
               type="button"
               className="layout-mobile-toggle"
-              onClick={() => setMobileNavOpenPath((p) => p === location.pathname ? null : location.pathname)}
-              aria-label="Toggle menu"
+              onClick={() => setMobileOpen((v) => !v)}
+              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileOpen}
             >
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                {mobileNavOpen
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                {mobileOpen
                   ? <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>
                   : <><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></>
                 }
@@ -136,21 +162,60 @@ export default function Layout({ children }) {
           </div>
         </div>
 
-        {/* Mobile nav drawer */}
-        {mobileNavOpen && (
-          <nav className="layout-mobile-nav">
-            {[...HEADER_NAV, ...ACCOUNT_NAV].map((item) => (
+      </header>
+
+      {/* Mobile drawer + backdrop — portalled to body so position:fixed escapes backdrop-filter containment */}
+      {mobileOpen && createPortal(
+        <>
+          <div className="layout-mobile-backdrop" onClick={() => setMobileOpen(false)} />
+          <nav className="layout-mobile-nav" aria-label="Mobile navigation">
+            {/* User info */}
+            <div className="layout-mobile-user">
+              <div className="layout-mobile-avatar">{initials}</div>
+              <div className="layout-mobile-user-info">
+                <span className="layout-mobile-user-name">{user?.name || user?.username}</span>
+                <span className="layout-mobile-user-email">{user?.email}</span>
+              </div>
+            </div>
+
+            <div className="layout-mobile-section-label">Navigation</div>
+            {HEADER_NAV.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
                 className={'layout-mobile-link' + (location.pathname === item.path ? ' active' : '')}
+                onClick={() => setMobileOpen(false)}
               >
                 {item.label}
               </Link>
             ))}
+
+            <div className="layout-mobile-divider" />
+            <div className="layout-mobile-section-label">Account</div>
+
+            {ACCOUNT_NAV.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={'layout-mobile-link' + (location.pathname === item.path ? ' active' : '')}
+                onClick={() => setMobileOpen(false)}
+              >
+                {item.label}
+              </Link>
+            ))}
+
+            <div className="layout-mobile-divider" />
+            <button
+              type="button"
+              className="layout-mobile-link layout-mobile-signout"
+              onClick={handleLogout}
+            >
+              Sign out
+            </button>
           </nav>
-        )}
-      </header>
+        </>,
+        document.body
+      )}
 
       <main className="layout-main">{children}</main>
 

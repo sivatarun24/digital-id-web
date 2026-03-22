@@ -2,12 +2,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { checkAvailability } from '../api/auth';
 
-const DEBOUNCE_MS = 400;
+const DEBOUNCE_MS = 500;
 
 /**
  * Debounced availability check for a single field.
- * Returns [status, setStatus] where status is one of:
+ * Returns { status, checkNow } where status is one of:
  *   null | 'checking' | 'available' | 'taken' | 'error'
+ * Call checkNow() on onBlur for an immediate (no-debounce) check.
  */
 export function useFieldAvailability(field, value, enabled) {
   const [status, setStatus] = useState(null);
@@ -15,10 +16,7 @@ export function useFieldAvailability(field, value, enabled) {
 
   const check = useCallback(async (val) => {
     const trimmed = String(val ?? '').trim();
-    if (!trimmed) {
-      setStatus(null);
-      return;
-    }
+    if (!trimmed) { setStatus(null); return; }
     setStatus('checking');
     try {
       const normalized = field === 'phoneno' ? trimmed.replace(/\D/g, '') : trimmed;
@@ -29,19 +27,30 @@ export function useFieldAvailability(field, value, enabled) {
     }
   }, [field]);
 
+  // Immediate check — call on onBlur
+  const checkNow = useCallback(() => {
+    if (!enabled) return;
+    clearTimeout(timerRef.current);
+    if (field === 'phoneno') {
+      const digits = (value ?? '').replace(/\D/g, '');
+      if (digits.length >= 10) check(digits);
+    } else {
+      const trimmed = (value ?? '').trim();
+      if (trimmed) check(trimmed);
+    }
+  }, [enabled, field, value, check]);
+
+  // Debounced check while typing
   useEffect(() => {
     if (!enabled) return;
-
     clearTimeout(timerRef.current);
 
     if (field === 'phoneno') {
       const digits = (value ?? '').replace(/\D/g, '');
       if (digits.length >= 10) {
         timerRef.current = setTimeout(() => check(digits), DEBOUNCE_MS);
-      } else {
-        if (digits.length === 0) {
-          setStatus(null);
-        }
+      } else if (digits.length === 0) {
+        setStatus(null);
       }
     } else {
       const trimmed = (value ?? '').trim();
@@ -55,5 +64,5 @@ export function useFieldAvailability(field, value, enabled) {
     return () => clearTimeout(timerRef.current);
   }, [enabled, value, field, check]);
 
-  return status;
+  return { status, checkNow };
 }

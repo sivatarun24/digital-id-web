@@ -74,8 +74,11 @@ describe('AuthScreen', () => {
       expect(screen.getByRole('button', { name: /create account/i })).toBeInTheDocument();
     });
 
-    it('shows password checklist on register form', () => {
+    it('shows password checklist when typing in register form', async () => {
+      const user = userEvent.setup();
       renderWithProviders(<AuthScreen />, { route: '/register' });
+      // Checklist only renders once the user starts typing (and requirements are unmet)
+      await user.type(screen.getByLabelText('Password'), 'a');
       expect(screen.getByText(/at least 8 characters/i)).toBeInTheDocument();
       expect(screen.getByText(/at least 1 uppercase/i)).toBeInTheDocument();
     });

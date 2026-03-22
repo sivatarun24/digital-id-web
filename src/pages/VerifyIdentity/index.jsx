@@ -11,6 +11,7 @@ const Icon = {
   Camera:     () => (<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>),
   User:       () => (<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="5" /><path d="M3 21v-2a7 7 0 0 1 14 0v2" /></svg>),
   Check:      () => (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>),
+  X:          () => (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>),
   CheckLg:    () => (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>),
   Party:      () => (<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5.8 11.3L2 22l10.7-3.79" /><path d="M4 3h.01" /><path d="M22 8h.01" /><path d="M15 2h.01" /><path d="M22 20h.01" /><path d="M22 2l-2.24 2.24" /><path d="M19.76 4.24a5 5 0 0 1 0 7.08L12 19l-7-7 7.76-7.76a5 5 0 0 1 7.08 0z" /></svg>),
 };
@@ -84,6 +85,13 @@ export default function VerifyIdentity() {
       }
     }, 'image/jpeg', 0.92);
   }, [stopCamera]);
+
+  // Assign stream to video element after it mounts (cameraActive triggers the render)
+  useEffect(() => {
+    if (cameraActive && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [cameraActive]);
 
   // Stop camera if user navigates away from selfie step
   useEffect(() => {
@@ -220,7 +228,7 @@ export default function VerifyIdentity() {
                   key={t.id}
                   type="button"
                   className={'vi-id-type' + (selectedType === t.id ? ' selected' : '')}
-                  onClick={() => setSelectedType(t.id)}
+                  onClick={() => { if (selectedType !== t.id) { setSelectedType(t.id); setFrontFile(null); setBackFile(null); } }}
                 >
                   <span className="vi-id-type-icon"><t.IconComp /></span>
                   <div className="vi-id-type-text">
@@ -242,20 +250,32 @@ export default function VerifyIdentity() {
               <div className="vi-upload-box">
                 <span className="vi-upload-icon"><Icon.Camera /></span>
                 <span className="vi-upload-label">Front of Document</span>
-                <label className="vi-upload-btn">
-                  {frontFile ? frontFile.name : 'Choose File'}
-                  <input type="file" accept="image/*" onChange={(e) => setFrontFile(e.target.files[0] || null)} hidden />
-                </label>
-                {frontFile && <span className="vi-upload-check"><Icon.Check /> Uploaded</span>}
+                {frontFile ? (
+                  <div className="vi-upload-file-row">
+                    <span className="vi-upload-check"><Icon.Check /> {frontFile.name}</span>
+                    <button type="button" className="vi-upload-remove" onClick={() => setFrontFile(null)} title="Remove"><Icon.X /></button>
+                  </div>
+                ) : (
+                  <label className="vi-upload-btn">
+                    Choose File
+                    <input type="file" accept="image/*" onChange={(e) => setFrontFile(e.target.files[0] || null)} hidden />
+                  </label>
+                )}
               </div>
               <div className="vi-upload-box">
                 <span className="vi-upload-icon"><Icon.Camera /></span>
                 <span className="vi-upload-label">Back of Document</span>
-                <label className="vi-upload-btn">
-                  {backFile ? backFile.name : 'Choose File'}
-                  <input type="file" accept="image/*" onChange={(e) => setBackFile(e.target.files[0] || null)} hidden />
-                </label>
-                {backFile && <span className="vi-upload-check"><Icon.Check /> Uploaded</span>}
+                {backFile ? (
+                  <div className="vi-upload-file-row">
+                    <span className="vi-upload-check"><Icon.Check /> {backFile.name}</span>
+                    <button type="button" className="vi-upload-remove" onClick={() => setBackFile(null)} title="Remove"><Icon.X /></button>
+                  </div>
+                ) : (
+                  <label className="vi-upload-btn">
+                    Choose File
+                    <input type="file" accept="image/*" onChange={(e) => setBackFile(e.target.files[0] || null)} hidden />
+                  </label>
+                )}
                 <span className="vi-upload-optional">Optional for passports</span>
               </div>
             </div>
@@ -269,7 +289,10 @@ export default function VerifyIdentity() {
             <div className="vi-selfie-area">
               <div className="vi-selfie-frame">
                 {cameraActive ? (
-                  <video ref={videoRef} autoPlay playsInline muted className="vi-selfie-preview" />
+                  <>
+                    <video ref={videoRef} autoPlay playsInline muted className="vi-selfie-preview" />
+                    <div className="vi-selfie-face-guide" />
+                  </>
                 ) : selfieFile ? (
                   <img src={URL.createObjectURL(selfieFile)} alt="Selfie preview" className="vi-selfie-preview" />
                 ) : (

@@ -297,6 +297,29 @@
 .vi-upload-check { display: flex; align-items: center; gap: 4px; font-size: 0.8125rem; color: var(--success); font-weight: 600; }
 .vi-upload-optional { font-size: 0.75rem; color: var(--text-3); }
 
+.vi-upload-file-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vi-upload-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: var(--error-bg);
+  color: var(--error);
+  border: 1px solid var(--error-border);
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--t), transform var(--t);
+}
+.vi-upload-remove:hover { background: var(--error); color: #fff; transform: scale(1.1); }
+
 /* ── Selfie ── */
 .vi-selfie-area {
   display: flex;
@@ -308,8 +331,8 @@
 }
 
 .vi-selfie-frame {
-  width: 190px;
-  height: 190px;
+  width: 220px;
+  height: 220px;
   border-radius: 50%;
   border: 2px dashed var(--border-strong);
   background: var(--bg);
@@ -319,6 +342,20 @@
   justify-content: center;
   gap: 8px;
   overflow: hidden;
+  position: relative;
+}
+
+.vi-selfie-face-guide {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 120px;
+  height: 155px;
+  border: 2px dashed rgba(255, 255, 255, 0.75);
+  border-radius: 50%;
+  pointer-events: none;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
 }
 
 .vi-selfie-icon { display: flex; align-items: center; color: var(--text-3); }

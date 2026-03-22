@@ -5,6 +5,7 @@ import { useFieldAvailability } from '../../hooks/useAvailability';
 import { validatePassword, getPasswordRuleStatus } from '../../utils/passwordValidation';
 import { resendVerification } from '../../api/auth';
 import AuthIllustration from './AuthIllustration';
+import LegalModal from './LegalModal';
 import PublicNav from '../layout/PublicNav';
 import '../../styles/auth.css';
 
@@ -23,6 +24,26 @@ const EyeOffIcon = () => (
   </svg>
 );
 
+/** Inline availability badge shown below username / email / phone fields */
+function AvailabilityBadge({ status }) {
+  if (!status || status === null) return null;
+  if (status === 'checking') {
+    return (
+      <span className="avail-badge avail-checking">
+        <span className="auth-spinner-xs" />
+        Checking…
+      </span>
+    );
+  }
+  if (status === 'available') {
+    return <span className="avail-badge avail-ok">✓ Available</span>;
+  }
+  if (status === 'taken') {
+    return <span className="avail-badge avail-taken">✗ Already taken</span>;
+  }
+  return <span className="avail-badge avail-error">Could not check availability</span>;
+}
+
 export default function AuthScreen() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -31,38 +52,70 @@ export default function AuthScreen() {
   const isRegisterPath = location.pathname === '/register';
   const [mode, setMode] = useState(isRegisterPath ? 'register' : 'login');
 
+  // Login fields
   const [identifier, setIdentifier] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+
+  // Register fields
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [phoneno, setPhoneno] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
-  const [gender, setGender] = useState('MALE');
+  const [gender, setGender] = useState('');
+
+  // Shared
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [activeLegalModal, setActiveLegalModal] = useState(null); // 'terms' | 'privacy' | null
 
   const isRegistering = mode === 'register';
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMsg, setResendMsg] = useState('');
 
-  useFieldAvailability('username', username, isRegistering);
-  useFieldAvailability('email', email, isRegistering);
-  useFieldAvailability('phoneno', phoneno, isRegistering);
+  // Availability hooks — now return { status, checkNow }
+  const { status: usernameStatus, checkNow: checkUsername } = useFieldAvailability('username', username, isRegistering);
+  const { status: emailStatus, checkNow: checkEmail } = useFieldAvailability('email', email, isRegistering);
+  const { status: phoneStatus, checkNow: checkPhone } = useFieldAvailability('phoneno', phoneno, isRegistering);
+
+  // Password checklist — only show rules that haven't been met yet
+  const passwordRules = getPasswordRuleStatus(password);
+  const unmetRules = passwordRules.filter((r) => !r.passed);
+  const allPasswordRulesMet = unmetRules.length === 0 && password.length > 0;
 
   function resetFeedback() {
     setError('');
     setMessage('');
   }
 
+  function resetRegisterFields() {
+    setName('');
+    setUsername('');
+    setEmail('');
+    setPhoneno('');
+    setDateOfBirth('');
+    setGender('');
+    setPassword('');
+    setConfirmPassword('');
+    setTermsAccepted(false);
+  }
+
   function switchMode(nextMode) {
     if (nextMode === mode) return;
     setMode(nextMode);
     resetFeedback();
+    // Clear password + all register fields when switching to prevent pre-fill
+    setPassword('');
+    setConfirmPassword('');
+    setIdentifier('');
+    if (nextMode === 'register') resetRegisterFields();
     navigate(nextMode === 'login' ? '/login' : '/register', { replace: true });
   }
 
@@ -82,24 +135,49 @@ export default function AuthScreen() {
           setLoading(false);
           return;
         }
+
         const pwdCheck = validatePassword(password);
         if (!pwdCheck.valid) {
-          setError(`Password: ${pwdCheck.errors.join('; ')}`);
+          setError(`Password does not meet requirements. Please fix the issues shown below.`);
           setLoading(false);
           return;
         }
+
+        if (password !== confirmPassword) {
+          setError('Passwords do not match. Please re-enter your confirm password.');
+          setLoading(false);
+          return;
+        }
+
         if (!termsAccepted) {
           setError('You must accept the Terms of Service and Privacy Policy to continue.');
           setLoading(false);
           return;
         }
+
+        if (usernameStatus === 'taken') {
+          setError('That username is already taken. Please choose a different one.');
+          setLoading(false);
+          return;
+        }
+        if (emailStatus === 'taken') {
+          setError('An account with that email already exists.');
+          setLoading(false);
+          return;
+        }
+        if (phoneStatus === 'taken') {
+          setError('An account with that phone number already exists.');
+          setLoading(false);
+          return;
+        }
+
         await register({
           username: username.trim(),
           name: name.trim(),
           email: email.trim(),
           phoneNo: Number(phoneNum),
           dateOfBirth: dateOfBirth || null,
-          gender,
+          gender: gender || null,
           password,
           role: 'USER',
           termsAccepted: true,
@@ -169,6 +247,11 @@ export default function AuthScreen() {
     <div className="auth-page">
       <PublicNav />
 
+      {/* Legal modals */}
+      {activeLegalModal && (
+        <LegalModal type={activeLegalModal} onClose={() => setActiveLegalModal(null)} />
+      )}
+
       <div className="auth-split">
         <div className="auth-left">
           <h1 className="auth-heading">
@@ -181,7 +264,7 @@ export default function AuthScreen() {
           </p>
 
           {mode === 'login' ? (
-            <form className="auth-form" onSubmit={handleSubmit}>
+            <form className="auth-form" onSubmit={handleSubmit} autoComplete="on">
               <div className="auth-input-group">
                 <div className="auth-field">
                   <label htmlFor="identifier">Username, email, or phone</label>
@@ -254,35 +337,101 @@ export default function AuthScreen() {
               </div>
             </form>
           ) : (
-            <form className="auth-form" onSubmit={handleSubmit}>
+            <form className="auth-form" onSubmit={handleSubmit} autoComplete="off">
               <div className="auth-input-group">
+
+                {/* Username */}
                 <div className="auth-field">
                   <label htmlFor="username">Username</label>
-                  <input id="username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="johndoe" autoComplete="username" required />
+                  <input
+                    id="username"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    onBlur={checkUsername}
+                    placeholder="johndoe"
+                    autoComplete="off"
+                    required
+                  />
+                  <AvailabilityBadge status={usernameStatus} />
                 </div>
+
+                {/* Full name */}
                 <div className="auth-field">
                   <label htmlFor="name">Full name</label>
-                  <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="John Doe" autoComplete="name" required />
+                  <input
+                    id="name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="John Doe"
+                    autoComplete="off"
+                    required
+                  />
                 </div>
+
+                {/* Email */}
                 <div className="auth-field">
                   <label htmlFor="email">Email</label>
-                  <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" required />
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onBlur={checkEmail}
+                    placeholder="you@example.com"
+                    autoComplete="off"
+                    required
+                  />
+                  <AvailabilityBadge status={emailStatus} />
                 </div>
+
+                {/* Phone */}
                 <div className="auth-field">
                   <label htmlFor="phoneno">Phone number</label>
-                  <input id="phoneno" type="tel" value={phoneno} onChange={(e) => setPhoneno(e.target.value)} placeholder="9876543210" autoComplete="tel" required />
+                  <input
+                    id="phoneno"
+                    type="tel"
+                    value={phoneno}
+                    onChange={(e) => setPhoneno(e.target.value)}
+                    onBlur={checkPhone}
+                    placeholder="9876543210"
+                    autoComplete="off"
+                    required
+                  />
+                  <AvailabilityBadge status={phoneStatus} />
                 </div>
+
+                {/* Date of birth */}
                 <div className="auth-field">
                   <label htmlFor="dateOfBirth">Date of birth</label>
-                  <input id="dateOfBirth" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} autoComplete="bday" />
+                  <input
+                    id="dateOfBirth"
+                    type="date"
+                    value={dateOfBirth}
+                    onChange={(e) => setDateOfBirth(e.target.value)}
+                    autoComplete="off"
+                  />
                 </div>
+
+                {/* Gender */}
                 <div className="auth-field">
-                  <label htmlFor="gender">Gender</label>
-                  <select id="gender" value={gender} onChange={(e) => setGender(e.target.value)} className="auth-select">
+                  <label htmlFor="gender">Gender <span className="auth-field-optional">(optional)</span></label>
+                  <select
+                    id="gender"
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value)}
+                    className="auth-select"
+                  >
+                    <option value="" disabled>Select gender</option>
                     <option value="MALE">Male</option>
                     <option value="FEMALE">Female</option>
+                    <option value="OTHER">Other</option>
+                    <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
                   </select>
                 </div>
+
+                {/* Password */}
                 <div className="auth-field">
                   <label htmlFor="reg-password">Password</label>
                   <div className="auth-password-wrap">
@@ -304,17 +453,53 @@ export default function AuthScreen() {
                       {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                     </button>
                   </div>
-                  <ul className="password-checklist">
-                    {getPasswordRuleStatus(password).map((rule) => (
-                      <li key={rule.id} className={rule.passed ? 'password-checklist-item passed' : 'password-checklist-item'}>
-                        <span className="password-checklist-dot" />
-                        <span>{rule.label}</span>
-                      </li>
-                    ))}
-                  </ul>
+
+                  {/* Only show checklist when password is non-empty and not all rules met */}
+                  {password.length > 0 && !allPasswordRulesMet && (
+                    <ul className="password-checklist">
+                      {unmetRules.map((rule) => (
+                        <li key={rule.id} className="password-checklist-item">
+                          <span className="password-checklist-dot" />
+                          <span>{rule.label}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
+
+                {/* Confirm password */}
+                <div className="auth-field">
+                  <label htmlFor="confirm-password">Confirm password</label>
+                  <div className="auth-password-wrap">
+                    <input
+                      id="confirm-password"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="••••••••"
+                      autoComplete="new-password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="auth-password-toggle"
+                      onClick={() => setShowConfirmPassword((v) => !v)}
+                      aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                    >
+                      {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
+                    </button>
+                  </div>
+                  {/* Inline match feedback */}
+                  {confirmPassword.length > 0 && (
+                    password === confirmPassword
+                      ? <span className="avail-badge avail-ok">✓ Passwords match</span>
+                      : <span className="avail-badge avail-taken">✗ Passwords do not match</span>
+                  )}
+                </div>
+
               </div>
 
+              {/* Terms */}
               <label className="auth-terms-label">
                 <input
                   type="checkbox"
@@ -324,9 +509,21 @@ export default function AuthScreen() {
                 />
                 <span>
                   I agree to the{' '}
-                  <span className="auth-terms-link">Terms of Service</span>
+                  <button
+                    type="button"
+                    className="auth-terms-link"
+                    onClick={() => setActiveLegalModal('terms')}
+                  >
+                    Terms of Service
+                  </button>
                   {' '}and{' '}
-                  <span className="auth-terms-link">Privacy Policy</span>
+                  <button
+                    type="button"
+                    className="auth-terms-link"
+                    onClick={() => setActiveLegalModal('privacy')}
+                  >
+                    Privacy Policy
+                  </button>
                 </span>
               </label>
 
