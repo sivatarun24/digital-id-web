@@ -24,7 +24,10 @@ describe('Wallet Page', () => {
 
   async function renderWallet() {
     renderAuthenticated(<Wallet />);
-    await waitFor(() => expect(mockFetchWallet).toHaveBeenCalled());
+    await waitFor(() => {
+      expect(mockFetchWallet).toHaveBeenCalled();
+      expect(screen.queryByText('Loading wallet…')).not.toBeInTheDocument();
+    });
   }
 
   it('renders the page heading', async () => {
