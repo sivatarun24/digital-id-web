@@ -47,6 +47,22 @@ export function uploadDocument({ documentType, issuer, expiresAt, file }) {
   });
 }
 
+export function replaceDocument(id, file) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  return fetch(`${API_BASE_URL}/api/documents/${id}/file`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: authHeaders(),
+    body: formData,
+  }).then(async (res) => {
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(data?.error || data?.message || 'Replace failed');
+    return data;
+  });
+}
+
 export function deleteDocument(id) {
   return request(`/api/documents/${id}`, { method: 'DELETE' });
 }

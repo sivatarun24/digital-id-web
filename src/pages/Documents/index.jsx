@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { fetchDocuments, uploadDocument, deleteDocument, openDocumentFile } from '../../api/documents';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { fetchDocuments, uploadDocument, replaceDocument, deleteDocument, openDocumentFile } from '../../api/documents';
 import './Documents.css';
 
 /* ── Monochrome SVG icons ── */
@@ -56,7 +56,7 @@ const Icon = {
     </svg>
   ),
   File: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <polyline points="14 2 14 8 20 8" />
     </svg>
@@ -108,6 +108,18 @@ const Icon = {
       <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
     </svg>
   ),
+  Chevron: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  ),
+  RefreshCw: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="23 4 23 10 17 10" />
+      <polyline points="1 20 1 14 7 14" />
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+    </svg>
+  ),
 };
 
 const DOCUMENT_TYPES = [
@@ -123,9 +135,6 @@ const DOCUMENT_TYPES = [
 
 const TYPE_MAP = Object.fromEntries(DOCUMENT_TYPES.map((t) => [t.id, t]));
 
-// Per-type metadata fields shown in the upload modal.
-// issuerLabel: null  → hide the issuer field
-// showExpiry: false  → hide expiry field
 const DOC_TYPE_FIELDS = {
   drivers_license: { issuerLabel: 'State',         issuerPlaceholder: 'e.g. California',    showExpiry: true,  expiryLabel: 'Expiry date' },
   passport:        { issuerLabel: 'Country',        issuerPlaceholder: 'e.g. United States',  showExpiry: true,  expiryLabel: 'Expiry date' },
@@ -146,25 +155,36 @@ function getDocLabel(documentType) {
   return TYPE_MAP[documentType]?.label ?? documentType;
 }
 
+// Determine the "worst" status across a group: rejected > pending > verified
+function groupStatus(docs) {
+  if (docs.some((d) => d.status === 'rejected')) return 'rejected';
+  if (docs.some((d) => d.status === 'pending'))  return 'pending';
+  return 'verified';
+}
+
+const STATUS_LABEL = { verified: '✓ Verified', pending: '○ Pending', rejected: '✕ Rejected' };
+
 const SIDE_LABELS = ['Front', 'Back', 'Page 1', 'Page 2', 'Other'];
 
+/* ── Upload modal ─────────────────────────────────────────── */
 function UploadModal({ onClose, onSubmit }) {
   const [selectedDocType, setSelectedDocType] = useState(null);
-  // files: [{ file: File, side: string }]
   const [files, setFiles]         = useState([]);
   const [issuer, setIssuer]       = useState('');
   const [expiresAt, setExpiresAt] = useState('');
+  const [submitting, setSubmitting]   = useState(false);
+  const [progress, setProgress]       = useState(null);
+  const [submitError, setSubmitError] = useState(null);
 
-  const typeFields = selectedDocType ? (DOC_TYPE_FIELDS[selectedDocType] ?? { issuerLabel: 'Issuer', showExpiry: true, expiryLabel: 'Expiry date' }) : null;
+  const typeFields = selectedDocType
+    ? (DOC_TYPE_FIELDS[selectedDocType] ?? { issuerLabel: 'Issuer', showExpiry: true, expiryLabel: 'Expiry date' })
+    : null;
 
   function selectDocType(id) {
     setSelectedDocType(id);
     setIssuer('');
     setExpiresAt('');
   }
-  const [submitting, setSubmitting]   = useState(false);
-  const [progress, setProgress]       = useState(null); // '1 of 2'
-  const [submitError, setSubmitError] = useState(null);
 
   useEffect(() => {
     function handleKey(e) { if (e.key === 'Escape') onClose(); }
@@ -250,7 +270,6 @@ function UploadModal({ onClose, onSubmit }) {
             ))}
           </div>
 
-          {/* File list */}
           {files.length > 0 && (
             <div className="docs-file-list">
               {files.map((entry, i) => (
@@ -279,29 +298,26 @@ function UploadModal({ onClose, onSubmit }) {
             </div>
           )}
 
-          {/* Drop zone / add more */}
           <div className={'docs-drop-zone' + (selectedDocType ? '' : ' disabled') + (files.length > 0 ? ' compact' : '')}>
-            <>
-              <div className="docs-drop-icon-wrap"><Icon.Upload /></div>
-              <span className="docs-drop-text">
-                {selectedDocType
-                  ? files.length > 0 ? 'Add more files' : 'Drag & drop your files here'
-                  : 'Select a document type first'}
-              </span>
-              {selectedDocType && (
-                <label className="docs-choose-btn">
-                  {files.length > 0 ? '+ Add files' : 'Browse files'}
-                  <input
-                    type="file"
-                    accept="image/*,.pdf"
-                    multiple
-                    onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }}
-                    hidden
-                  />
-                </label>
-              )}
-              <span className="docs-drop-hint">JPEG, PNG, PDF — max 10 MB each</span>
-            </>
+            <div className="docs-drop-icon-wrap"><Icon.Upload /></div>
+            <span className="docs-drop-text">
+              {selectedDocType
+                ? files.length > 0 ? 'Add more files' : 'Drag & drop your files here'
+                : 'Select a document type first'}
+            </span>
+            {selectedDocType && (
+              <label className="docs-choose-btn">
+                {files.length > 0 ? '+ Add files' : 'Browse files'}
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  multiple
+                  onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }}
+                  hidden
+                />
+              </label>
+            )}
+            <span className="docs-drop-hint">JPEG, PNG, PDF — max 10 MB each</span>
           </div>
 
           {typeFields && (typeFields.issuerLabel || typeFields.showExpiry) && (
@@ -339,9 +355,7 @@ function UploadModal({ onClose, onSubmit }) {
             </div>
           )}
 
-          {submitError && (
-            <p className="docs-submit-error">{submitError}</p>
-          )}
+          {submitError && <p className="docs-submit-error">{submitError}</p>}
         </div>
 
         <div className="docs-modal-footer">
@@ -365,12 +379,92 @@ function UploadModal({ onClose, onSubmit }) {
   );
 }
 
+/* ── Document group card ──────────────────────────────────── */
+function DocGroupCard({ docType, docs, onView, onReplace, onDelete, replacingId, deletingId, viewingId }) {
+  const [expanded, setExpanded] = useState(true);
+  const DocIcon = getDocIcon(docType);
+  const label   = getDocLabel(docType);
+  const status  = groupStatus(docs);
+
+  return (
+    <div className="docs-group">
+      <button
+        type="button"
+        className="docs-group-header"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+      >
+        <span className="docs-card-icon"><DocIcon /></span>
+        <span className="docs-group-title">{label}</span>
+        <span className="docs-group-count">{docs.length} {docs.length === 1 ? 'file' : 'files'}</span>
+        <span className={'docs-status ' + status}>{STATUS_LABEL[status]}</span>
+        <span className={'docs-group-chevron' + (expanded ? ' open' : '')}><Icon.Chevron /></span>
+      </button>
+
+      {expanded && (
+        <div className="docs-group-files">
+          {docs.map((doc) => (
+            <div key={doc.id} className="docs-group-file">
+              <span className="docs-group-file-icon"><Icon.File /></span>
+              <div className="docs-group-file-info">
+                <span className="docs-group-file-name" title={doc.originalFileName}>
+                  {doc.originalFileName}
+                </span>
+                <span className="docs-group-file-meta">
+                  {doc.uploadedAt && <span>{doc.uploadedAt}</span>}
+                  {doc.expiresAt  && <span>· Expires {doc.expiresAt}</span>}
+                  <span className={'docs-status-inline ' + doc.status}>
+                    {STATUS_LABEL[doc.status]}
+                  </span>
+                </span>
+              </div>
+              <div className="docs-card-actions">
+                <button
+                  type="button"
+                  className="docs-view-btn"
+                  onClick={() => onView(doc.id)}
+                  disabled={viewingId === doc.id}
+                >
+                  {viewingId === doc.id ? 'Opening…' : 'View'}
+                </button>
+                <label className="docs-replace-btn" title="Replace with a new file">
+                  {replacingId === doc.id ? 'Replacing…' : 'Replace'}
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) { onReplace(doc.id, file); e.target.value = ''; }
+                    }}
+                    disabled={replacingId === doc.id}
+                    hidden
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="docs-remove-btn"
+                  onClick={() => onDelete(doc.id)}
+                  disabled={deletingId === doc.id}
+                >
+                  {deletingId === doc.id ? 'Removing…' : 'Remove'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Main page ────────────────────────────────────────────── */
 export default function Documents() {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState(null);
   const [showUpload, setShowUpload] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [replacingId, setReplacingId] = useState(null);
   const [viewingId, setViewingId]   = useState(null);
 
   const loadDocuments = useCallback(() => {
@@ -382,14 +476,24 @@ export default function Documents() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    loadDocuments();
-  }, [loadDocuments]);
+  useEffect(() => { loadDocuments(); }, [loadDocuments]);
 
   const handleUploadSubmit = async (payload) => {
     const newDoc = await uploadDocument(payload);
     setDocuments((prev) => [newDoc, ...prev]);
     return newDoc;
+  };
+
+  const handleReplace = async (id, file) => {
+    setReplacingId(id);
+    try {
+      const updated = await replaceDocument(id, file);
+      setDocuments((prev) => prev.map((d) => d.id === id ? updated : d));
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setReplacingId(null);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -414,6 +518,14 @@ export default function Documents() {
       setViewingId(null);
     }
   };
+
+  // Group documents by type, preserving upload order within each group
+  const groups = documents.reduce((acc, doc) => {
+    (acc[doc.documentType] ??= []).push(doc);
+    return acc;
+  }, {});
+  // Order groups by the most recently uploaded doc in each group (first doc = most recent)
+  const orderedGroups = Object.entries(groups);
 
   return (
     <div className="docs-page">
@@ -458,62 +570,21 @@ export default function Documents() {
         </div>
       )}
 
-      {!loading && !error && documents.length > 0 && (
+      {!loading && !error && orderedGroups.length > 0 && (
         <div className="docs-list">
-          {documents.map((doc) => {
-            const DocIcon = getDocIcon(doc.documentType);
-            return (
-              <div key={doc.id} className="docs-card">
-                <div className="docs-card-top">
-                  <span className="docs-card-icon"><DocIcon /></span>
-                  <div className="docs-card-info">
-                    <span className="docs-card-type">{getDocLabel(doc.documentType)}</span>
-                    {doc.issuer && <span className="docs-card-issuer">{doc.issuer}</span>}
-                  </div>
-                  <span className={'docs-status ' + doc.status}>
-                    {doc.status === 'verified' && '✓ '}
-                    {doc.status === 'pending'  && '○ '}
-                    {doc.status === 'rejected' && '✕ '}
-                    {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
-                  </span>
-                </div>
-                <div className="docs-card-details">
-                  <div className="docs-detail">
-                    <span className="docs-detail-label">Uploaded</span>
-                    <span className="docs-detail-value">{doc.uploadedAt ?? '—'}</span>
-                  </div>
-                  {doc.expiresAt && (
-                    <div className="docs-detail">
-                      <span className="docs-detail-label">Expires</span>
-                      <span className="docs-detail-value">{doc.expiresAt}</span>
-                    </div>
-                  )}
-                  <div className="docs-detail">
-                    <span className="docs-detail-label">File</span>
-                    <span className="docs-detail-value">{doc.originalFileName}</span>
-                  </div>
-                </div>
-                <div className="docs-card-actions">
-                  <button
-                    type="button"
-                    className="docs-view-btn"
-                    onClick={() => handleView(doc.id)}
-                    disabled={viewingId === doc.id}
-                  >
-                    {viewingId === doc.id ? 'Opening…' : 'View'}
-                  </button>
-                  <button
-                    type="button"
-                    className="docs-remove-btn"
-                    onClick={() => handleDelete(doc.id)}
-                    disabled={deletingId === doc.id}
-                  >
-                    {deletingId === doc.id ? 'Removing…' : 'Remove'}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+          {orderedGroups.map(([docType, docs]) => (
+            <DocGroupCard
+              key={docType}
+              docType={docType}
+              docs={docs}
+              onView={handleView}
+              onReplace={handleReplace}
+              onDelete={handleDelete}
+              replacingId={replacingId}
+              deletingId={deletingId}
+              viewingId={viewingId}
+            />
+          ))}
         </div>
       )}
 
