@@ -189,13 +189,25 @@ export function resetPassword({ token, newPassword }) {
   });
 }
 
-/** Change password (authenticated). Requires current password and new password. */
-export function changePassword({ oldPassword, newPassword }) {
+/** Request an email OTP for password change after validating the current password. */
+export function requestPasswordChangeOtp({ oldPassword }) {
+  return request('/api/auth/change-password/request-otp', {
+    method: 'POST',
+    body: JSON.stringify({
+      oldPassword: oldPassword ?? '',
+    }),
+  });
+}
+
+/** Change password (authenticated). Requires current password, confirmed new password, and email OTP. */
+export function changePassword({ oldPassword, newPassword, confirmNewPassword, otp }) {
   return request('/api/auth/change-password', {
     method: 'POST',
     body: JSON.stringify({
       oldPassword: oldPassword ?? '',
       newPassword: newPassword ?? '',
+      confirmNewPassword: confirmNewPassword ?? '',
+      otp: otp ?? '',
     }),
   });
 }

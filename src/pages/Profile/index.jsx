@@ -83,13 +83,19 @@ export default function Profile() {
     }
   }
 
+  function formatFieldValue(label, value) {
+    if (value == null || value === '') return 'Not provided';
+    if (label === 'Gender') return String(value).replace(/_/g, ' ');
+    return value;
+  }
+
   const personalFields = [
-    { label: 'Full Name', value: user?.name },
-    { label: 'Username', value: user?.username },
-    { label: 'Email', value: user?.email },
-    { label: 'Phone', value: user?.phoneNo },
-    { label: 'Date of Birth', value: user?.dateOfBirth },
-    { label: 'Gender', value: user?.gender },
+    { label: 'Full Name', value: user?.name, editable: true },
+    { label: 'Username', value: user?.username, editable: false },
+    { label: 'Email', value: user?.email, editable: false },
+    { label: 'Phone', value: user?.phoneNo, editable: false },
+    { label: 'Date of Birth', value: user?.dateOfBirth, editable: true },
+    { label: 'Gender', value: user?.gender, editable: true },
   ];
 
   const accountFields = [
@@ -137,19 +143,92 @@ export default function Profile() {
       <div className="profile-section">
         <div className="profile-section-header">
           <h3 className="profile-section-title">Personal Information</h3>
-          {!editing && (
-            <button type="button" className="profile-edit-btn" onClick={startEditing}>
-              <Icon.Edit /> Edit
-            </button>
-          )}
+          <button type="button" className="profile-edit-btn" onClick={startEditing}>
+            <Icon.Edit /> Edit
+          </button>
         </div>
 
-        {editSuccess && !editing && (
+        {editSuccess && (
           <p className="profile-success-msg">{editSuccess}</p>
         )}
 
-        {editing ? (
-          <div className="profile-card">
+        <div className="profile-card">
+          <div className="profile-rows">
+            {personalFields.map((f) => (
+              <div className="profile-row" key={f.label}>
+                <span className="profile-label">{f.label}</span>
+                <div className="profile-value-group">
+                  <span
+                    className={
+                      'profile-value ' +
+                      (f.className || '') +
+                      ' ' +
+                      (f.editable ? 'profile-value-editable' : 'profile-value-readonly')
+                    }
+                  >
+                    {formatFieldValue(f.label, f.value)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="profile-section">
+        <h3 className="profile-section-title">Account Details</h3>
+        <div className="profile-card">
+          <div className="profile-rows">
+            {accountFields.map(
+              (f) =>
+                f.value != null && (
+                  <div className="profile-row" key={f.label}>
+                    <span className="profile-label">{f.label}</span>
+                    <span className={'profile-value ' + (f.className || '')}>
+                      {f.value}
+                    </span>
+                  </div>
+                ),
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="profile-section">
+        <h3 className="profile-section-title">Verified Credentials</h3>
+        <div className="profile-card">
+          <div className="profile-empty-state">
+            <span className="profile-empty-icon"><Icon.Clipboard /></span>
+            <p>No verified credentials yet.</p>
+            <span className="profile-empty-hint">
+              Complete identity verification to unlock credentials like military,
+              student, first responder, and more.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {editing && (
+        <div className="profile-modal-backdrop" onClick={cancelEditing}>
+          <div className="profile-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="profile-modal-header">
+              <div>
+                <h3 className="profile-modal-title">Edit Profile</h3>
+                <p className="profile-modal-subtitle">
+                  Update the fields you can manage here: full name, date of birth, and gender.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="profile-modal-close"
+                onClick={cancelEditing}
+                disabled={editLoading}
+                aria-label="Close edit profile modal"
+              >
+                ×
+              </button>
+            </div>
+
             <form className="profile-edit-form" onSubmit={handleSave}>
               <div className="profile-edit-field">
                 <label htmlFor="edit-name">Full Name</label>
@@ -197,57 +276,8 @@ export default function Profile() {
               </div>
             </form>
           </div>
-        ) : (
-          <div className="profile-card">
-            <div className="profile-rows">
-              {personalFields.map(
-                (f) =>
-                  f.value != null && (
-                    <div className="profile-row" key={f.label}>
-                      <span className="profile-label">{f.label}</span>
-                      <span className={'profile-value ' + (f.className || '')}>
-                        {f.value}
-                      </span>
-                    </div>
-                  ),
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="profile-section">
-        <h3 className="profile-section-title">Account Details</h3>
-        <div className="profile-card">
-          <div className="profile-rows">
-            {accountFields.map(
-              (f) =>
-                f.value != null && (
-                  <div className="profile-row" key={f.label}>
-                    <span className="profile-label">{f.label}</span>
-                    <span className={'profile-value ' + (f.className || '')}>
-                      {f.value}
-                    </span>
-                  </div>
-                ),
-            )}
-          </div>
         </div>
-      </div>
-
-      <div className="profile-section">
-        <h3 className="profile-section-title">Verified Credentials</h3>
-        <div className="profile-card">
-          <div className="profile-empty-state">
-            <span className="profile-empty-icon"><Icon.Clipboard /></span>
-            <p>No verified credentials yet.</p>
-            <span className="profile-empty-hint">
-              Complete identity verification to unlock credentials like military,
-              student, first responder, and more.
-            </span>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
