@@ -49,8 +49,8 @@ describe('Settings Page', () => {
 
     expect(screen.getByText('Update Password')).toBeInTheDocument();
     expect(screen.getByLabelText(/current password/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/new password/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/confirm new password/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^new password$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^confirm new password$/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/email verification code/i)).toBeInTheDocument();
   });
 });
