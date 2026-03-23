@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Settings.css';
-import { changePassword, deleteAccount, twoFactorSetup, twoFactorEnable, twoFactorDisable } from '../../api/auth';
+import {
+  changePassword,
+  deleteAccount,
+  requestPasswordChangeOtp,
+  twoFactorSetup,
+  twoFactorEnable,
+  twoFactorDisable,
+} from '../../api/auth';
 import useAuth from '../../hooks/useAuth';
 import { validateChangePassword, PASSWORD_HINT, getPasswordRuleStatus } from '../../utils/passwordValidation';
 
@@ -72,6 +79,10 @@ export default function Settings() {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [passwordOtp, setPasswordOtp] = useState('');
+  const [otpRequested, setOtpRequested] = useState(false);
+  const [otpRequestLoading, setOtpRequestLoading] = useState(false);
   const [changePwdError, setChangePwdError] = useState('');
   const [changePwdMessage, setChangePwdMessage] = useState('');
   const [changePwdLoading, setChangePwdLoading] = useState(false);
@@ -119,17 +130,74 @@ export default function Settings() {
       setChangePwdError(check.errors.join('; '));
       return;
     }
+    if (newPassword !== confirmNewPassword) {
+      setChangePwdError('New password and confirm password must match.');
+      return;
+    }
+    if (!passwordOtp.trim()) {
+      setChangePwdError('Enter the verification code sent to your email.');
+      return;
+    }
     setChangePwdLoading(true);
     try {
-      await changePassword({ oldPassword, newPassword });
+      await changePassword({ oldPassword, newPassword, confirmNewPassword, otp: passwordOtp.trim() });
       setChangePwdMessage('Password changed successfully.');
       setOldPassword('');
       setNewPassword('');
+      setConfirmNewPassword('');
+      setPasswordOtp('');
+      setOtpRequested(false);
+      setShowChangePassword(false);
     } catch (err) {
       setChangePwdError(err.message || 'Something went wrong');
     } finally {
       setChangePwdLoading(false);
     }
+  }
+
+  async function handleRequestPasswordOtp() {
+    setChangePwdError('');
+    setChangePwdMessage('');
+    const check = validateChangePassword(oldPassword, newPassword);
+    if (!check.valid) {
+      setChangePwdError(check.errors.join('; '));
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setChangePwdError('New password and confirm password must match.');
+      return;
+    }
+    setOtpRequestLoading(true);
+    try {
+      const response = await requestPasswordChangeOtp({ oldPassword });
+      setOtpRequested(true);
+      setChangePwdMessage(response?.message || 'Verification code sent to your email.');
+    } catch (err) {
+      setChangePwdError(err.message || 'Failed to send verification code');
+    } finally {
+      setOtpRequestLoading(false);
+    }
+  }
+
+  function openChangePasswordModal() {
+    setShowChangePassword(true);
+    setChangePwdError('');
+    setChangePwdMessage('');
+    setOldPassword('');
+    setNewPassword('');
+    setConfirmNewPassword('');
+    setPasswordOtp('');
+    setOtpRequested(false);
+  }
+
+  function closeChangePasswordModal() {
+    setShowChangePassword(false);
+    setChangePwdError('');
+    setOldPassword('');
+    setNewPassword('');
+    setConfirmNewPassword('');
+    setPasswordOtp('');
+    setOtpRequested(false);
   }
 
   async function openSetup2FA() {
@@ -208,61 +276,11 @@ export default function Settings() {
             <button
               type="button"
               className="settings-action"
-              onClick={() => {
-                setShowChangePassword((v) => !v);
-                setChangePwdError('');
-                setChangePwdMessage('');
-              }}
+              onClick={openChangePasswordModal}
             >
-              {showChangePassword ? 'Cancel' : 'Change'}
+              Change
             </button>
           </div>
-
-          {showChangePassword && (
-            <form className="settings-cp-form" onSubmit={handleChangePassword}>
-              <div className="settings-cp-field">
-                <label htmlFor="settings-old-password">Current password</label>
-                <input
-                  id="settings-old-password"
-                  type="password"
-                  value={oldPassword}
-                  onChange={(e) => setOldPassword(e.target.value)}
-                  placeholder="Current password"
-                  autoComplete="current-password"
-                  required
-                />
-              </div>
-              <div className="settings-cp-field">
-                <label htmlFor="settings-new-password">New password</label>
-                <input
-                  id="settings-new-password"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="New password"
-                  autoComplete="new-password"
-                  required
-                />
-                <span className="settings-cp-hint">{PASSWORD_HINT}</span>
-                <ul className="password-checklist">
-                  {getPasswordRuleStatus(newPassword).map((rule) => (
-                    <li
-                      key={rule.id}
-                      className={rule.passed ? 'password-checklist-item passed' : 'password-checklist-item pending'}
-                    >
-                      <span className="password-checklist-dot" />
-                      <span>{rule.label}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              {changePwdError && <p className="settings-cp-error">{changePwdError}</p>}
-              {changePwdMessage && <p className="settings-cp-message">{changePwdMessage}</p>}
-              <button type="submit" className="settings-cp-submit" disabled={changePwdLoading}>
-                {changePwdLoading ? 'Updating…' : 'Update password'}
-              </button>
-            </form>
-          )}
 
           <div className="settings-item">
             <div className="settings-item-header">
@@ -398,13 +416,32 @@ export default function Settings() {
 
       {showDeleteModal && (
         <div className="settings-modal-backdrop" onClick={() => setShowDeleteModal(false)}>
-          <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
-            <h3 className="settings-modal-title">Delete Account</h3>
-            <p className="settings-modal-body">
-              This will permanently delete your Digital ID and all associated data — documents, credentials, and connections. This cannot be undone.
-            </p>
+          <div className="settings-modal settings-modal-danger-enhanced" onClick={(e) => e.stopPropagation()}>
+            <div className="settings-modal-header">
+              <div className="settings-modal-hero">
+                <span className="settings-modal-danger-icon"><Icon.AlertTriangle /></span>
+                <div>
+                  <h3 className="settings-modal-title">Delete Account</h3>
+                  <p className="settings-modal-body">
+                    This will permanently delete your Digital ID and all associated data, including documents,
+                    credentials, and connected services. This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="settings-modal-close settings-modal-close-danger"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleteLoading}
+                aria-label="Close delete account modal"
+              >
+                ×
+              </button>
+            </div>
+
             <form onSubmit={handleDeleteAccount}>
-              <div className="settings-cp-field">
+              <div className="settings-delete-panel">
+                <div className="settings-cp-field">
                 <label htmlFor="delete-password">Enter your password to confirm</label>
                 <input
                   id="delete-password"
@@ -415,6 +452,7 @@ export default function Settings() {
                   autoComplete="current-password"
                   required
                 />
+                </div>
               </div>
               {deleteError && <p className="settings-cp-error">{deleteError}</p>}
               <div className="settings-modal-actions">
@@ -439,17 +477,150 @@ export default function Settings() {
         </div>
       )}
 
+      {showChangePassword && (
+        <div className="settings-modal-backdrop" onClick={closeChangePasswordModal}>
+          <div className="settings-modal settings-modal-neutral" onClick={(e) => e.stopPropagation()}>
+            <div className="settings-modal-header">
+              <div>
+                <h3 className="settings-modal-title-neutral">Update Password</h3>
+                <p className="settings-modal-body">
+                  Enter your current password, choose a new one, then confirm the email verification code sent to
+                  {user?.email ? ` ${user.email}` : ' your email address'}.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="settings-modal-close"
+                onClick={closeChangePasswordModal}
+                disabled={changePwdLoading || otpRequestLoading}
+                aria-label="Close password modal"
+              >
+                ×
+              </button>
+            </div>
+
+            <form className="settings-cp-form settings-cp-form-modal" onSubmit={handleChangePassword}>
+              <div className="settings-cp-field">
+                <label htmlFor="settings-old-password">Current password</label>
+                <input
+                  id="settings-old-password"
+                  type="password"
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  placeholder="Current password"
+                  autoComplete="current-password"
+                  required
+                />
+              </div>
+              <div className="settings-cp-field">
+                <label htmlFor="settings-new-password">New password</label>
+                <input
+                  id="settings-new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="New password"
+                  autoComplete="new-password"
+                  required
+                />
+                <span className="settings-cp-hint">{PASSWORD_HINT}</span>
+                <ul className="password-checklist">
+                  {getPasswordRuleStatus(newPassword).map((rule) => (
+                    <li
+                      key={rule.id}
+                      className={rule.passed ? 'password-checklist-item passed' : 'password-checklist-item pending'}
+                    >
+                      <span className="password-checklist-dot" />
+                      <span>{rule.label}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="settings-cp-field">
+                <label htmlFor="settings-confirm-password">Confirm new password</label>
+                <input
+                  id="settings-confirm-password"
+                  type="password"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  placeholder="Re-enter new password"
+                  autoComplete="new-password"
+                  required
+                />
+              </div>
+              <div className="settings-cp-field">
+                <label htmlFor="settings-password-otp">Email verification code</label>
+                <div className="settings-otp-row">
+                  <input
+                    id="settings-password-otp"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={6}
+                    value={passwordOtp}
+                    onChange={(e) => setPasswordOtp(e.target.value.replace(/\D/g, ''))}
+                    placeholder="000000"
+                    autoComplete="one-time-code"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="settings-action settings-otp-send-btn"
+                    onClick={handleRequestPasswordOtp}
+                    disabled={otpRequestLoading || changePwdLoading}
+                  >
+                    {otpRequestLoading ? 'Sending…' : otpRequested ? 'Resend code' : 'Send code'}
+                  </button>
+                </div>
+              </div>
+              {changePwdError && <p className="settings-cp-error">{changePwdError}</p>}
+              {changePwdMessage && <p className="settings-cp-message">{changePwdMessage}</p>}
+              <div className="settings-modal-actions">
+                <button type="submit" className="settings-cp-submit" disabled={changePwdLoading || otpRequestLoading}>
+                  {changePwdLoading ? 'Updating…' : 'Update password'}
+                </button>
+                <button
+                  type="button"
+                  className="settings-action"
+                  onClick={closeChangePasswordModal}
+                  disabled={changePwdLoading || otpRequestLoading}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {show2FAModal && (
         <div className="settings-modal-backdrop" onClick={() => { setShow2FAModal(false); setTwoFAError(''); setTwoFACode(''); }}>
           <div className="settings-modal settings-modal-2fa" onClick={(e) => e.stopPropagation()}>
             {twoFAStep === 'setup' && (
               <>
-                <h3 className="settings-modal-title-neutral">Set Up Two-Factor Authentication</h3>
-                <p className="settings-modal-body">
-                  Scan the QR code below with your authenticator app (e.g. Google Authenticator, Authy), then enter the 6-digit code to confirm.
-                </p>
+                <div className="settings-modal-header">
+                  <div className="settings-modal-hero">
+                    <span className="settings-modal-security-icon"><Icon.Phone /></span>
+                    <div>
+                      <h3 className="settings-modal-title-neutral">Set Up Two-Factor Authentication</h3>
+                      <p className="settings-modal-body">
+                        Link your authenticator app, then enter the 6-digit code it generates to finish setup.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="settings-modal-close"
+                    onClick={() => { setShow2FAModal(false); setTwoFAError(''); setTwoFACode(''); }}
+                    disabled={twoFALoading}
+                    aria-label="Close two-factor authentication modal"
+                  >
+                    ×
+                  </button>
+                </div>
                 <div className="twofa-qr-block">
-                  <p className="twofa-qr-label">Scan with your app:</p>
+                  <div className="twofa-step-chip">Step 1</div>
+                  <p className="twofa-qr-label">Open your authenticator app and add this account:</p>
                   <a
                     className="twofa-qr-link"
                     href={twoFAQrUri}
@@ -458,11 +629,13 @@ export default function Settings() {
                   >
                     Open in authenticator app
                   </a>
-                  <p className="twofa-manual-label">Or enter this code manually:</p>
+                  <div className="twofa-divider" />
+                  <p className="twofa-manual-label">Or enter this setup key manually:</p>
                   <code className="twofa-secret">{twoFASecret}</code>
                 </div>
                 <form onSubmit={handleEnable2FA}>
                   <div className="settings-cp-field">
+                    <label className="twofa-step-label">Step 2</label>
                     <label htmlFor="twofa-code">Authenticator code</label>
                     <input
                       id="twofa-code"
@@ -497,10 +670,26 @@ export default function Settings() {
 
             {twoFAStep === 'disable' && (
               <>
-                <h3 className="settings-modal-title">Disable Two-Factor Authentication</h3>
-                <p className="settings-modal-body">
-                  Enter the current 6-digit code from your authenticator app to disable 2FA.
-                </p>
+                <div className="settings-modal-header">
+                  <div className="settings-modal-hero">
+                    <span className="settings-modal-security-icon danger"><Icon.Lock /></span>
+                    <div>
+                      <h3 className="settings-modal-title">Disable Two-Factor Authentication</h3>
+                      <p className="settings-modal-body">
+                        Enter the current 6-digit code from your authenticator app to disable 2FA.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="settings-modal-close"
+                    onClick={() => { setShow2FAModal(false); setTwoFAError(''); setTwoFACode(''); }}
+                    disabled={twoFALoading}
+                    aria-label="Close disable two-factor authentication modal"
+                  >
+                    ×
+                  </button>
+                </div>
                 <form onSubmit={handleDisable2FA}>
                   <div className="settings-cp-field">
                     <label htmlFor="twofa-disable-code">Authenticator code</label>

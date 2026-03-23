@@ -6,6 +6,11 @@ import Settings from '../index';
 
 vi.mock('../../../api/auth', () => ({
   changePassword: vi.fn(),
+  deleteAccount: vi.fn(),
+  requestPasswordChangeOtp: vi.fn(),
+  twoFactorSetup: vi.fn(),
+  twoFactorEnable: vi.fn(),
+  twoFactorDisable: vi.fn(),
 }));
 
 describe('Settings Page', () => {
@@ -35,14 +40,17 @@ describe('Settings Page', () => {
     expect(screen.getByText('Danger Zone')).toBeInTheDocument();
   });
 
-  it('shows password form when Change button is clicked', async () => {
+  it('shows password modal when Change button is clicked', async () => {
     const user = userEvent.setup();
     renderAuthenticated(<Settings />);
 
     const changeBtn = screen.getByRole('button', { name: 'Change' });
     await user.click(changeBtn);
 
+    expect(screen.getByText('Update Password')).toBeInTheDocument();
     expect(screen.getByLabelText(/current password/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/new password/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^new password$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^confirm new password$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/email verification code/i)).toBeInTheDocument();
   });
 });

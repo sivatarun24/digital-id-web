@@ -168,6 +168,12 @@
   background: var(--bg);
 }
 
+.settings-cp-form-modal {
+  padding: 0;
+  border-top: none;
+  background: transparent;
+}
+
 .settings-cp-field {
   display: flex;
   flex-direction: column;
@@ -199,6 +205,24 @@
 }
 
 .settings-cp-field input::placeholder { color: var(--text-3); }
+
+.settings-cp-field select {
+  padding: 10px 14px;
+  font-size: 0.875rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  outline: none;
+  transition: border-color var(--t), box-shadow var(--t);
+  width: 100%;
+  font-family: inherit;
+}
+
+.settings-cp-field select:focus {
+  border-color: #059669;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+}
 
 .settings-cp-hint {
   font-size: 0.75rem;
@@ -240,6 +264,20 @@
 
 .settings-cp-submit:hover:not(:disabled) { background: #065f46; }
 .settings-cp-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.settings-otp-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.settings-otp-row input {
+  flex: 1;
+}
+
+.settings-otp-send-btn {
+  white-space: nowrap;
+}
 
 /* Password checklist */
 .password-checklist {
@@ -307,6 +345,17 @@
   animation: settings-modal-in 0.2s ease;
 }
 
+.settings-modal-neutral {
+  border-color: var(--border);
+}
+
+.settings-modal-danger-enhanced {
+  border-color: rgba(239, 68, 68, 0.24);
+  background:
+    radial-gradient(circle at top right, rgba(239, 68, 68, 0.06), transparent 35%),
+    var(--surface);
+}
+
 @keyframes settings-modal-in {
   from { opacity: 0; transform: scale(0.96) translateY(8px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
@@ -325,11 +374,112 @@
   line-height: 1.6;
 }
 
+.settings-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.settings-modal-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.settings-modal-danger-icon {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.16), rgba(248, 113, 113, 0.08));
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.18);
+}
+
+.settings-modal-danger-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.settings-modal-security-icon {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.14), rgba(16, 185, 129, 0.08));
+  color: #047857;
+  border: 1px solid rgba(5, 150, 105, 0.18);
+}
+
+.settings-modal-security-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.settings-modal-security-icon.danger {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.16), rgba(248, 113, 113, 0.08));
+  color: #dc2626;
+  border-color: rgba(239, 68, 68, 0.18);
+}
+
+.settings-modal-close {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-2);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: all var(--t);
+  flex-shrink: 0;
+}
+
+.settings-modal-close:hover:not(:disabled) {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.settings-modal-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.settings-modal-close-danger {
+  border-color: rgba(239, 68, 68, 0.14);
+}
+
+.settings-modal-close-danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.08);
+  color: var(--error);
+  border-color: rgba(239, 68, 68, 0.24);
+}
+
 .settings-modal-actions {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
   padding-top: 4px;
+}
+
+.settings-delete-panel {
+  margin-top: 4px;
+  padding: 16px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.95), rgba(244, 246, 248, 0.95));
+  border: 1px solid var(--border);
+  border-radius: 14px;
 }
 
 .settings-modal-confirm-danger {
@@ -348,6 +498,10 @@
 .settings-modal-confirm-danger:hover:not(:disabled) { opacity: 0.85; }
 .settings-modal-confirm-danger:disabled { opacity: 0.5; cursor: not-allowed; }
 
+.settings-modal-confirm-danger {
+  box-shadow: 0 10px 20px rgba(239, 68, 68, 0.16);
+}
+
 /* ── 2FA modal ── */
 .settings-modal-2fa {
   border-color: var(--border);
@@ -364,10 +518,11 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 16px;
-  background: var(--bg);
+  padding: 18px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(244, 246, 248, 0.98));
   border: 1px solid var(--border);
-  border-radius: var(--r-sm);
+  border-radius: 16px;
+  margin-bottom: 4px;
 }
 
 .twofa-qr-label {
@@ -380,15 +535,43 @@
 .twofa-qr-link {
   display: inline-block;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   color: #059669;
   text-decoration: underline;
   text-underline-offset: 2px;
   word-break: break-all;
   transition: color var(--t);
+  width: fit-content;
 }
 
 .twofa-qr-link:hover { color: #064e3b; }
+
+.twofa-step-chip {
+  width: fit-content;
+  padding: 4px 10px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #047857;
+  background: rgba(5, 150, 105, 0.08);
+  border: 1px solid rgba(5, 150, 105, 0.16);
+  border-radius: var(--r-full);
+}
+
+.twofa-step-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #047857;
+}
+
+.twofa-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 2px 0;
+}
 
 .twofa-manual-label {
   font-size: 0.8125rem;
@@ -430,11 +613,37 @@
   .settings-icon svg { width: 15px; height: 15px; }
 
   .settings-cp-form { padding: 18px; }
+  .settings-cp-form-modal { padding: 0; }
 
   .settings-modal { padding: 22px; }
 
+  .settings-modal-hero {
+    align-items: flex-start;
+  }
+
+  .settings-modal-danger-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+
+  .settings-modal-security-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+
+  .settings-delete-panel {
+    padding: 14px;
+  }
+
+  .settings-otp-row {
+    flex-direction: column;
+  }
+
   .settings-modal-actions { flex-direction: column; }
   .settings-modal-confirm-danger,
+  .settings-cp-submit,
   .settings-modal-actions .settings-action {
     width: 100%;
     text-align: center;
