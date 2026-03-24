@@ -1,10 +1,24 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '../../../test/helpers';
 import AuthScreen from '../AuthScreen';
 
+const mockNavigate = vi.fn();
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
 describe('AuthScreen', () => {
+  beforeEach(() => {
+    mockNavigate.mockReset();
+  });
+
   describe('Login mode', () => {
     it('renders login form at /login', () => {
       renderWithProviders(<AuthScreen />, { route: '/login' });
@@ -27,7 +41,7 @@ describe('AuthScreen', () => {
 
     it('submits login form', async () => {
       const user = userEvent.setup();
-      const loginFn = vi.fn().mockResolvedValue({ id: 1 });
+      const loginFn = vi.fn().mockResolvedValue({ id: 1, role: 'USER' });
 
       renderWithProviders(<AuthScreen />, {
         route: '/login',
@@ -42,6 +56,7 @@ describe('AuthScreen', () => {
         identifier: 'testuser',
         password: 'Pass@123',
       });
+      expect(mockNavigate).toHaveBeenCalledWith('/home', { replace: true });
     });
 
     it('displays error on failed login', async () => {

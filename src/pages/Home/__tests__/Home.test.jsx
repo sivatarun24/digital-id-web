@@ -7,32 +7,32 @@ import Home from '../index';
 describe('Home Page', () => {
   it('renders welcome message with user name', () => {
     renderAuthenticated(<Home />);
-    expect(screen.getByText(/welcome back, test\b/i)).toBeInTheDocument();
+    expect(screen.getByText(/home for test\b/i)).toBeInTheDocument();
   });
 
   it('shows verified identity status for ACTIVE user', () => {
     renderAuthenticated(<Home />);
-    expect(screen.getByText('Identity Status')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Identity Status' })).toBeInTheDocument();
   });
 
   it('shows pending status for non-active user', () => {
     renderAuthenticated(<Home />, {
       user: { ...MOCK_USER, accountStatus: 'PENDING' },
     });
-    expect(screen.getByText('Verification Pending')).toBeInTheDocument();
+    expect(screen.getByText(/verification not started|verification pending/i)).toBeInTheDocument();
   });
 
   it('renders stat cards', () => {
     renderAuthenticated(<Home />);
-    expect(screen.getByText('Verified IDs')).toBeInTheDocument();
+    expect(screen.getByText('Pending Verifications')).toBeInTheDocument();
     expect(screen.getAllByText('Connected Services').length).toBeGreaterThan(0);
   });
 
   it('renders all quick action cards', () => {
     renderAuthenticated(<Home />);
-    expect(screen.getByText('Verify Identity')).toBeInTheDocument();
+    expect(screen.getByText('Start verification')).toBeInTheDocument();
     expect(screen.getAllByText('Credentials').length).toBeGreaterThan(0);
-    expect(screen.getByText('Security Settings')).toBeInTheDocument();
+    expect(screen.getByText('Security settings')).toBeInTheDocument();
     expect(screen.getByText('Digital Wallet')).toBeInTheDocument();
   });
 
@@ -47,7 +47,7 @@ describe('Home Page', () => {
     const user = userEvent.setup();
     renderAuthenticated(<Home />, { route: '/home' });
 
-    const verifyCard = screen.getByText('Verify Identity').closest('.home-action-card');
+    const verifyCard = screen.getByText('Start verification').closest('.home-action');
     await user.click(verifyCard);
   });
 });

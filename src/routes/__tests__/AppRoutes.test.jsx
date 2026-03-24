@@ -43,7 +43,7 @@ describe('AppRoutes', () => {
 
   it('redirects / to /home for authenticated users', async () => {
     renderRoute('/', authedAuth);
-    expect(await screen.findByText(/welcome/i)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: /home for test/i })).toBeInTheDocument();
   });
 
   it('shows auth screen at /login for guests', () => {
@@ -53,7 +53,7 @@ describe('AppRoutes', () => {
 
   it('redirects /login to /home for authenticated users', async () => {
     renderRoute('/login', authedAuth);
-    expect(await screen.findByText(/welcome/i)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: /home for test/i })).toBeInTheDocument();
   });
 
   it('redirects protected routes to /login for guests', () => {

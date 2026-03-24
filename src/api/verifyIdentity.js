@@ -36,3 +36,17 @@ export function submitVerification({ idType, frontFile, backFile, selfieFile }) 
     return data;
   });
 }
+
+export async function openVerificationFile(side) {
+  const response = await fetch(`${API_BASE_URL}/api/verify-identity/files/${side}`, {
+    credentials: 'include',
+    headers: authHeaders(),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error || data?.message || 'Failed to load file');
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+}

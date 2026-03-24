@@ -88,10 +88,10 @@ export default function Layout({ children }) {
             ))}
           </nav>
 
-          {/* Right side */}
+          {/* Right side controls */}
           <div className="layout-header-right">
 
-            {/* Notification bell */}
+            {/* Notification bell — desktop only */}
             <Link
               to="/notifications"
               className={'layout-notif-btn' + (location.pathname === '/notifications' ? ' active' : '')}
@@ -144,7 +144,7 @@ export default function Layout({ children }) {
               )}
             </div>
 
-            {/* Mobile hamburger */}
+            {/* Mobile hamburger — right side, only visible on mobile */}
             <button
               type="button"
               className="layout-mobile-toggle"

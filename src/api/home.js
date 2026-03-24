@@ -18,10 +18,10 @@ async function request(path, options = {}) {
   return data;
 }
 
-export function fetchDashboard() {
-  return request('/api/dashboard');
+export function fetchHome() {
+  return request('/api/home');
 }
 
 export function fetchWallet() {
-  return request('/api/dashboard/wallet');
+  return request('/api/home/wallet');
 }
