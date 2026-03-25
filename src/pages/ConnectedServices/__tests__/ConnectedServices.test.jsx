@@ -28,7 +28,10 @@ describe('ConnectedServices Page', () => {
 
   async function renderServices() {
     renderAuthenticated(<ConnectedServices />);
-    await waitFor(() => expect(mockFetchServices).toHaveBeenCalled());
+    await waitFor(() => {
+      expect(mockFetchServices).toHaveBeenCalled();
+      expect(screen.queryByText('Loading services…')).not.toBeInTheDocument();
+    });
   }
 
   it('renders the page heading', async () => {
