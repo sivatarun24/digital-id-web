@@ -48,6 +48,7 @@ export default function AuthScreen() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, register } = useAuth();
+  const redirectAfterLogin = location.state?.from;
 
   const isRegisterPath = location.pathname === '/register';
   const [mode, setMode] = useState(isRegisterPath ? 'register' : 'login');
@@ -126,8 +127,15 @@ export default function AuthScreen() {
 
     try {
       if (mode === 'login') {
-        await login({ identifier: identifier.trim(), password });
+        const loggedInUser = await login({ identifier: identifier.trim(), password });
         setMessage('Logged in successfully.');
+        if (loggedInUser?.role === 'ADMIN') {
+          navigate('/admin', { replace: true });
+        } else if (loggedInUser?.role === 'INST_ADMIN') {
+          navigate('/inst-admin', { replace: true });
+        } else {
+          navigate(redirectAfterLogin || '/home', { replace: true });
+        }
       } else {
         const phoneNum = phoneno.replace(/\D/g, '');
         if (!phoneNum) {

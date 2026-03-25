@@ -7,8 +7,8 @@ const { mockFetchWallet } = vi.hoisted(() => ({
   mockFetchWallet: vi.fn(),
 }));
 
-vi.mock('../../../api/dashboard', () => ({
-  fetchDashboard: vi.fn(),
+vi.mock('../../../api/home', () => ({
+  fetchHome: vi.fn(),
   fetchWallet: () => mockFetchWallet(),
 }));
 

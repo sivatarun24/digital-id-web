@@ -1,11 +1,10 @@
 // Primary nav — shown in the header bar
 export const HEADER_NAV = [
-  { path: '/home',            label: 'Home' },
-  { path: '/verify-identity', label: 'Verify Identity' },
-  { path: '/wallet',          label: 'Wallet' },
-  { path: '/credentials',     label: 'Credentials' },
-  { path: '/documents',       label: 'Documents' },
-  { path: '/services',        label: 'Services' },
+  { path: '/home',         label: 'Home' },
+  { path: '/verification', label: 'Verification' },
+  { path: '/credentials',  label: 'Credentials' },
+  { path: '/wallet',       label: 'Wallet' },
+  { path: '/services',     label: 'Services' },
 ];
 
 // Account nav — shown only in the profile dropdown

@@ -22,8 +22,22 @@ export function fetchCredentials() {
   return request('/api/credentials');
 }
 
-export function startCredentialVerification(credentialType) {
-  return request(`/api/credentials/${credentialType}/start`, { method: 'POST' });
+export function startCredentialVerification(credentialType, fields = {}, file = null) {
+  const form = new FormData();
+  Object.entries(fields).forEach(([k, v]) => {
+    if (v !== null && v !== undefined && v !== '') form.append(k, String(v));
+  });
+  if (file) form.append('file', file);
+  return fetch(`${API_BASE_URL}/api/credentials/${credentialType}/start`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: authHeaders(),
+    body: form,
+  }).then(async (res) => {
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(data?.error || data?.message || 'Request failed');
+    return data;
+  });
 }
 
 export function submitCredentialDocument(credentialType, file) {
@@ -33,4 +47,8 @@ export function submitCredentialDocument(credentialType, file) {
     method: 'POST',
     body: form,
   });
+}
+
+export function fetchCredentialById(credentialType) {
+  return request(`/api/credentials/${credentialType}`);
 }

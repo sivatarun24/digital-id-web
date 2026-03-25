@@ -5,7 +5,115 @@ import {
   markAllRead,
   dismissNotification,
 } from '../../api/notifications';
+import { getMyInfoRequests, respondToInfoRequest } from '../../api/infoRequests';
 import './Notifications.css';
+
+function InfoResponseModal({ request, onClose, onResponded }) {
+  const [message, setMessage] = useState('');
+  const [files, setFiles] = useState([]); // raw File objects
+  const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  function handleFileChange(e) {
+    setFiles(prev => [...prev, ...Array.from(e.target.files)]);
+    e.target.value = '';
+  }
+
+  function removeFile(i) {
+    setFiles(prev => prev.filter((_, idx) => idx !== i));
+  }
+
+  async function handleSubmit() {
+    if (!message.trim() && files.length === 0) return;
+    setLoading(true);
+    setError('');
+    try {
+      await respondToInfoRequest(request.id, message.trim(), files);
+      setSent(true);
+      setTimeout(onResponded, 1000);
+    } catch (e) {
+      setError(e.message || 'Failed to send response');
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 16 }}
+      onClick={onClose}
+    >
+      <div
+        style={{ background: '#0f172a', border: '1px solid #1e2a3a', borderRadius: 12, padding: 24, maxWidth: 520, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <p style={{ fontWeight: 700, fontSize: '1rem', color: '#e2e8f0', margin: '0 0 4px' }}>Respond to Admin Request</p>
+        <div style={{ background: '#1c1107', border: '1px solid #78350f', borderRadius: 8, padding: '10px 14px', marginBottom: 18 }}>
+          <div style={{ fontSize: '0.7rem', color: '#fb923c', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
+            Admin requested:
+          </div>
+          <div style={{ fontSize: '0.85rem', color: '#fde68a' }}>{request.note}</div>
+        </div>
+
+        {sent ? (
+          <div style={{ textAlign: 'center', padding: '20px 0', color: '#4ade80', fontWeight: 600 }}>Response sent!</div>
+        ) : (
+          <>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Your Message
+              </label>
+              <textarea
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #1e2a3a', background: '#0a0d14', color: '#e2e8f0', fontSize: '0.85rem', minHeight: 90, resize: 'vertical', outline: 'none', boxSizing: 'border-box' }}
+                placeholder="Explain or provide the requested information…"
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                autoFocus
+              />
+            </div>
+
+            <div style={{ marginBottom: 18 }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#64748b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Attach Files (optional)
+              </label>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '6px 14px', borderRadius: 6, border: '1px solid #1e2a3a', background: '#0a0d14', color: '#94a3b8', fontSize: '0.82rem' }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                </svg>
+                Choose files
+                <input type="file" multiple style={{ display: 'none' }} onChange={handleFileChange} />
+              </label>
+              {files.length > 0 && (
+                <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {files.map((f, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', background: '#1e2a3a', borderRadius: 4, fontSize: '0.75rem', color: '#94a3b8' }}>
+                      📎 {f.name}
+                      <button onClick={() => removeFile(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.8rem', padding: 0, lineHeight: 1 }}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {error && <div style={{ marginTop: 6, fontSize: '0.75rem', color: '#f87171' }}>{error}</div>}
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={onClose} style={{ padding: '7px 16px', borderRadius: 6, border: '1px solid #1e2a3a', background: 'transparent', color: '#94a3b8', cursor: 'pointer', fontSize: '0.83rem' }}>
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={loading || (!message.trim() && files.length === 0)}
+                style={{ padding: '7px 16px', borderRadius: 6, border: 'none', background: '#2563eb', color: '#fff', cursor: 'pointer', fontSize: '0.83rem', fontWeight: 600, opacity: (loading || (!message.trim() && files.length === 0)) ? 0.5 : 1 }}
+              >
+                {loading ? 'Sending…' : 'Send Response'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const Icon = {
   Lock: () => (
@@ -96,31 +204,60 @@ export default function Notifications() {
   const [hasMore, setHasMore]             = useState(false);
   const [offset, setOffset]               = useState(0);
   const [error, setError]                 = useState(null);
+  const [infoRequests, setInfoRequests]   = useState([]);
+  const [respondTarget, setRespondTarget] = useState(null);
+  const [requestKey, setRequestKey]       = useState(0);
 
-  const load = useCallback((currentFilter, reset = true) => {
-    if (reset) setLoading(true);
-    const off = reset ? 0 : offset;
-    fetchNotifications({ type: currentFilter, limit: PAGE_SIZE, offset: off })
+  const refreshInfoRequests = useCallback(() => {
+    getMyInfoRequests().then(setInfoRequests).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications({ type: filter, limit: PAGE_SIZE, offset: 0 })
       .then(({ notifications: list, unreadCount: count, hasMore: more }) => {
-        setNotifications((prev) => reset ? list : [...prev, ...list]);
+        setNotifications(list);
         setUnreadCount(count);
         setHasMore(!!more);
-        setOffset(off + list.length);
+        setOffset(list.length);
         setLoading(false);
         setLoadingMore(false);
       })
-      .catch((err) => { setError(err.message); setLoading(false); setLoadingMore(false); });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter]);
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+        setLoadingMore(false);
+      });
+  }, [filter, requestKey]);
 
-  useEffect(() => {
-    setOffset(0);
-    load(filter, true);
-  }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { refreshInfoRequests(); }, [refreshInfoRequests]);
 
   function handleLoadMore() {
     setLoadingMore(true);
-    load(filter, false);
+    fetchNotifications({ type: filter, limit: PAGE_SIZE, offset })
+      .then(({ notifications: list, unreadCount: count, hasMore: more }) => {
+        setNotifications((prev) => [...prev, ...list]);
+        setUnreadCount(count);
+        setHasMore(!!more);
+        setOffset(offset + list.length);
+        setLoadingMore(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoadingMore(false);
+      });
+  }
+
+  function handleFilterChange(nextFilter) {
+    if (nextFilter === filter) return;
+    setError(null);
+    setLoading(true);
+    setFilter(nextFilter);
+  }
+
+  function handleRetry() {
+    setError(null);
+    setLoading(true);
+    setRequestKey((key) => key + 1);
   }
 
   const filtered =
@@ -169,6 +306,54 @@ export default function Notifications() {
         )}
       </div>
 
+      {infoRequests.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#fb923c', textTransform: 'uppercase', letterSpacing: '0.06em', background: 'rgba(251,146,60,0.12)', border: '1px solid rgba(251,146,60,0.3)', borderRadius: 4, padding: '2px 8px' }}>
+              ⚠ Action Required
+            </span>
+            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+              Admin Info Requests ({infoRequests.length})
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {infoRequests.map(r => (
+              <div
+                key={r.id}
+                onClick={() => setRespondTarget(r)}
+                style={{
+                  cursor: 'pointer',
+                  background: '#1c1107',
+                  border: '1px solid #92400e',
+                  borderRadius: 10,
+                  padding: '12px 16px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 12,
+                  transition: 'border-color 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = '#fb923c'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = '#92400e'}
+              >
+                <span style={{ fontSize: '1.1rem', marginTop: 1 }}>📋</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '0.7rem', color: '#fb923c', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }}>
+                    Admin Request · {r.source === 'verification_review' ? 'Verification' : 'General'}
+                  </div>
+                  <div style={{ fontSize: '0.87rem', color: '#fde68a', marginBottom: 4, wordBreak: 'break-word' }}>{r.note}</div>
+                  <div style={{ fontSize: '0.72rem', color: '#78350f' }}>
+                    {r.requestedAt ? formatTime(r.requestedAt) : ''} · Click to respond
+                  </div>
+                </div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#fff', background: '#b45309', borderRadius: 4, padding: '2px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  Respond →
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="notif-filters">
         {[
           { id: 'all',          label: 'All' },
@@ -182,7 +367,7 @@ export default function Notifications() {
             key={f.id}
             type="button"
             className={'notif-filter' + (filter === f.id ? ' active' : '')}
-            onClick={() => setFilter(f.id)}
+            onClick={() => handleFilterChange(f.id)}
           >
             {f.label}
           </button>
@@ -197,7 +382,7 @@ export default function Notifications() {
       )}
 
       {!loading && error && (
-        <div className="notif-error"><p>{error}</p><button onClick={load}>Retry</button></div>
+        <div className="notif-error"><p>{error}</p><button onClick={handleRetry}>Retry</button></div>
       )}
 
       {!loading && !error && (
@@ -259,6 +444,14 @@ export default function Notifications() {
             )}
           </>
         )
+      )}
+
+      {respondTarget && (
+        <InfoResponseModal
+          request={respondTarget}
+          onClose={() => setRespondTarget(null)}
+          onResponded={() => { setRespondTarget(null); refreshInfoRequests(); }}
+        />
       )}
     </div>
   );

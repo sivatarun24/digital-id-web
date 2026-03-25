@@ -77,3 +77,12 @@ export async function openDocumentFile(id) {
   const url = URL.createObjectURL(blob);
   window.open(url, '_blank');
 }
+
+export async function fetchDocumentFile(id) {
+  const response = await fetch(`${API_BASE_URL}/api/documents/${id}/file`, {
+    credentials: 'include',
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw new Error('Failed to load file');
+  return response.blob();
+}
