@@ -14,6 +14,8 @@ const Solutions = lazy(() => import('../pages/Solutions'));
 const Verify = lazy(() => import('../pages/Verify'));
 const About = lazy(() => import('../pages/About'));
 const Help = lazy(() => import('../pages/Help'));
+const DeveloperRegister = lazy(() => import('../pages/Developer/Register'));
+const ConsentPage = lazy(() => import('../pages/Consent'));
 
 const Home = lazy(() => import('../pages/Home'));
 const Profile = lazy(() => import('../pages/Profile'));
@@ -101,6 +103,8 @@ export default function AppRoutes() {
       <Route path="/verify" element={<LazyPage><Verify /></LazyPage>} />
       <Route path="/about" element={<LazyPage><About /></LazyPage>} />
       <Route path="/help" element={<LazyPage><Help /></LazyPage>} />
+      <Route path="/developer/register" element={<LazyPage><DeveloperRegister /></LazyPage>} />
+      <Route path="/authorize" element={<ProtectedRoute><LazyPage><ConsentPage /></LazyPage></ProtectedRoute>} />
 
       {/* --- Protected user routes --- */}
       <Route path="/home" element={<ProtectedRoute><LazyPage><Home /></LazyPage></ProtectedRoute>} />
