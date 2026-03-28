@@ -377,6 +377,108 @@
   align-items: center;
   gap: 10px;
 }
+/* Analyzing State */
+.vi-analyzing-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 2rem 0;
+  text-align: center;
+}
+
+.vi-analyzing-wrap h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.vi-analyzing-wrap p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  max-width: 400px;
+  line-height: 1.6;
+}
+
+.vi-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid rgba(var(--accent-rgb, 5, 150, 105), 0.1);
+  border-top-color: var(--accent, #059669);
+  border-radius: 50%;
+  animation: vi-spin 0.8s linear infinite;
+}
+
+@keyframes vi-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Rejected State */
+.vi-rejected-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3.5rem 2rem;
+  text-align: center;
+}
+
+.vi-rejected-icon {
+  width: 64px;
+  height: 64px;
+  background: #fef2f2;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+}
+
+.vi-rejected-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.vi-rejected-card h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 0.75rem;
+}
+
+.vi-rejected-reason {
+  color: #ef4444;
+  background: #fef2f2;
+  padding: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid #fee2e2;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: 480px;
+  margin-bottom: 2rem;
+}
+
+.vi-rejected-actions {
+  display: flex;
+  justify-content: center;
+}
+
+/* Enhancements to Success Steps during Analysis */
+.vi-success-step.active .vi-success-dot {
+  background: var(--accent, #059669);
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb, 5, 150, 105), 0.2);
+  transform: scale(1.1);
+  animation: vi-pulse 2s infinite;
+}
+
+@keyframes vi-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb, 5, 150, 105), 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(var(--accent-rgb, 5, 150, 105), 0); }
+  100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb, 5, 150, 105), 0); }
+}
 
 .vi-selfie-btn {
   display: inline-flex;

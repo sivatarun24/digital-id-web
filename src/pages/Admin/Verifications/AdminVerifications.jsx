@@ -8,6 +8,8 @@ import {
   adminListCredentials,
   adminReviewCredential,
   adminGetCredentialFile,
+  adminDeleteCredential,
+  instAdminDeleteCredential,
 } from '../../../api/admin';
 import { adminCreateInfoRequest, adminGetInfoRequests, adminOpenResponseFile } from '../../../api/infoRequests';
 
@@ -569,9 +571,24 @@ function CredentialModal({ c, onClose, onReview, reviewing }) {
           <div style={{ flex: 1, minWidth: 280 }}>
             <CredReviewPanel c={c} onReview={onReview} reviewing={reviewing} />
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={() => window.open(`/admin/users/${c.userId}`, '_blank')}>
-            View Profile ↗
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => window.open(`/admin/users/${c.userId}`, '_blank')}>
+              View Profile ↗
+            </button>
+            <button
+              className="btn btn-sm"
+              style={{
+                backgroundColor: 'transparent',
+                color: '#ef4444',
+                border: '1px solid #ef4444',
+                fontSize: '0.75rem'
+              }}
+              onClick={() => onReview(c.id, 'DELETE')}
+              disabled={reviewing}
+            >
+              Delete Submission
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -600,6 +617,21 @@ function CredentialsTab() {
   useEffect(() => { loadAll(); }, [loadAll]);
 
   async function handleReview(id, status, notes) {
+    if (status === 'DELETE') {
+      if (!window.confirm('Are you sure you want to permanently delete this submission and all associated documents?')) return;
+      setReviewing(r => ({ ...r, [id]: true }));
+      try {
+        await adminDeleteCredential(id);
+        loadAll();
+        setSelected(null);
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setReviewing(r => ({ ...r, [id]: false }));
+      }
+      return;
+    }
+
     setReviewing(r => ({ ...r, [id]: true }));
     try {
       await adminReviewCredential(id, status, notes);

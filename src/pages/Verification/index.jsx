@@ -4,76 +4,82 @@ import { fetchVerificationStatus, submitVerification, openVerificationFile } fro
 import { getMyInfoRequests, respondToInfoRequest } from '../../api/infoRequests';
 import './Verification.css';
 
+const cleanReviewerNotes = (notes) => {
+  if (!notes) return '';
+  // Remove legacy or technical prefixes
+  return notes.replace(/^(AI|Automated system|Check Failed|Verification Failed):?\s*/i, '').trim();
+};
+
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
 const Icon = {
-  IdCard:      () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" /><circle cx="8" cy="12" r="2" /><path d="M14 10h4M14 14h3" /></svg>),
-  Passport:    () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" /><circle cx="12" cy="11" r="3" /><path d="M8 18h8" /></svg>),
-  Building:    () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14" /><path d="M9 21v-4h6v4" /></svg>),
-  Shield:      () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>),
-  Scroll:      () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="9" y1="13" x2="15" y2="13" /><line x1="9" y1="17" x2="13" y2="17" /></svg>),
-  CreditCard:  () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>),
-  Home:        () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" /><path d="M9 21V12h6v9" /></svg>),
-  BarChart:    () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M8 16v-4M12 16V8M16 16v-6" /></svg>),
-  File:        () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>),
-  Upload:      () => (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>),
-  Lock:        () => (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>),
-  Trash:       () => (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>),
+  IdCard: () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" /><circle cx="8" cy="12" r="2" /><path d="M14 10h4M14 14h3" /></svg>),
+  Passport: () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" /><circle cx="12" cy="11" r="3" /><path d="M8 18h8" /></svg>),
+  Building: () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14" /><path d="M9 21v-4h6v4" /></svg>),
+  Shield: () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>),
+  Scroll: () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="9" y1="13" x2="15" y2="13" /><line x1="9" y1="17" x2="13" y2="17" /></svg>),
+  CreditCard: () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>),
+  Home: () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" /><path d="M9 21V12h6v9" /></svg>),
+  BarChart: () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M8 16v-4M12 16V8M16 16v-6" /></svg>),
+  File: () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>),
+  Upload: () => (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>),
+  Lock: () => (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>),
+  Trash: () => (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>),
   CheckShield: () => (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><polyline points="9 12 11 14 15 10" /></svg>),
-  Check:       () => (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>),
-  CheckLg:     () => (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>),
-  X:           () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>),
-  XSmall:      () => (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>),
-  Folder:      () => (<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>),
-  Chevron:     () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>),
-  Party:       () => (<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5.8 11.3L2 22l10.7-3.79" /><path d="M4 3h.01M22 8h.01M15 2h.01M22 20h.01" /><path d="M22 2l-2.24 2.24" /><path d="M19.76 4.24a5 5 0 0 1 0 7.08L12 19l-7-7 7.76-7.76a5 5 0 0 1 7.08 0z" /></svg>),
-  Camera:      () => (<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>),
-  User:        () => (<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="5" /><path d="M3 21v-2a7 7 0 0 1 14 0v2" /></svg>),
+  Check: () => (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>),
+  CheckLg: () => (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>),
+  X: () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>),
+  XSmall: () => (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>),
+  Folder: () => (<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>),
+  Chevron: () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>),
+  Party: () => (<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5.8 11.3L2 22l10.7-3.79" /><path d="M4 3h.01M22 8h.01M15 2h.01M22 20h.01" /><path d="M22 2l-2.24 2.24" /><path d="M19.76 4.24a5 5 0 0 1 0 7.08L12 19l-7-7 7.76-7.76a5 5 0 0 1 7.08 0z" /></svg>),
+  Camera: () => (<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>),
+  User: () => (<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="5" /><path d="M3 21v-2a7 7 0 0 1 14 0v2" /></svg>),
   ExternalDoc: () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><polyline points="9 12 11 14 15 10" /></svg>),
-  Plus:        () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>),
-  Send:        () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>),
+  Plus: () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>),
+  Send: () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>),
 
 };
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const DOCUMENT_TYPES = [
-  { id: 'drivers_license', Icon: Icon.IdCard,     label: "Driver's License" },
-  { id: 'passport',        Icon: Icon.Passport,   label: 'Passport' },
-  { id: 'state_id',        Icon: Icon.Building,   label: 'State ID Card' },
-  { id: 'military_id',     Icon: Icon.Shield,     label: 'Military ID' },
-  { id: 'birth_cert',      Icon: Icon.Scroll,     label: 'Birth Certificate' },
-  { id: 'ssn_card',        Icon: Icon.CreditCard, label: 'Social Security Card' },
-  { id: 'utility_bill',    Icon: Icon.Home,       label: 'Utility Bill' },
-  { id: 'tax_return',      Icon: Icon.BarChart,   label: 'Tax Return' },
+  { id: 'drivers_license', Icon: Icon.IdCard, label: "Driver's License" },
+  { id: 'passport', Icon: Icon.Passport, label: 'Passport' },
+  { id: 'state_id', Icon: Icon.Building, label: 'State ID Card' },
+  { id: 'military_id', Icon: Icon.Shield, label: 'Military ID' },
+  { id: 'birth_cert', Icon: Icon.Scroll, label: 'Birth Certificate' },
+  { id: 'ssn_card', Icon: Icon.CreditCard, label: 'Social Security Card' },
+  { id: 'utility_bill', Icon: Icon.Home, label: 'Utility Bill' },
+  { id: 'tax_return', Icon: Icon.BarChart, label: 'Tax Return' },
 ];
 
 const TYPE_MAP = Object.fromEntries(DOCUMENT_TYPES.map((t) => [t.id, t]));
 
 const DOC_TYPE_FIELDS = {
-  drivers_license: { issuerLabel: 'State',         issuerPlaceholder: 'e.g. California',     showExpiry: true,  expiryLabel: 'Expiry date' },
-  passport:        { issuerLabel: 'Country',        issuerPlaceholder: 'e.g. United States',  showExpiry: true,  expiryLabel: 'Expiry date' },
-  state_id:        { issuerLabel: 'State',          issuerPlaceholder: 'e.g. Texas',           showExpiry: true,  expiryLabel: 'Expiry date' },
-  military_id:     { issuerLabel: 'Branch',         issuerPlaceholder: 'e.g. U.S. Army',       showExpiry: true,  expiryLabel: 'Expiry date' },
-  passport_card:   { issuerLabel: 'Country',        issuerPlaceholder: 'e.g. United States',   showExpiry: true,  expiryLabel: 'Expiry date' },
-  birth_cert:      { issuerLabel: 'State / County', issuerPlaceholder: 'e.g. Cook County, IL', showExpiry: false },
-  ssn_card:        { issuerLabel: null,                                                         showExpiry: false },
-  utility_bill:    { issuerLabel: 'Provider',       issuerPlaceholder: 'e.g. PG&E',            showExpiry: true,  expiryLabel: 'Bill date'   },
-  tax_return:      { issuerLabel: 'Tax year',       issuerPlaceholder: 'e.g. 2023',            showExpiry: false },
+  drivers_license: { issuerLabel: 'State', issuerPlaceholder: 'e.g. California', showExpiry: true, expiryLabel: 'Expiry date' },
+  passport: { issuerLabel: 'Country', issuerPlaceholder: 'e.g. United States', showExpiry: true, expiryLabel: 'Expiry date' },
+  state_id: { issuerLabel: 'State', issuerPlaceholder: 'e.g. Texas', showExpiry: true, expiryLabel: 'Expiry date' },
+  military_id: { issuerLabel: 'Branch', issuerPlaceholder: 'e.g. U.S. Army', showExpiry: true, expiryLabel: 'Expiry date' },
+  passport_card: { issuerLabel: 'Country', issuerPlaceholder: 'e.g. United States', showExpiry: true, expiryLabel: 'Expiry date' },
+  birth_cert: { issuerLabel: 'State / County', issuerPlaceholder: 'e.g. Cook County, IL', showExpiry: false },
+  ssn_card: { issuerLabel: null, showExpiry: false },
+  utility_bill: { issuerLabel: 'Provider', issuerPlaceholder: 'e.g. PG&E', showExpiry: true, expiryLabel: 'Bill date' },
+  tax_return: { issuerLabel: 'Tax year', issuerPlaceholder: 'e.g. 2023', showExpiry: false },
 };
 
 const ID_TYPES = [
-  { id: 'drivers_license', label: "Driver's License", desc: "State-issued driver's license",     docType: 'drivers_license' },
-  { id: 'passport',        label: 'Passport',          desc: 'U.S. or international passport',   docType: 'passport'        },
-  { id: 'state_id',        label: 'State ID',          desc: 'Non-driver government-issued ID',  docType: 'state_id'        },
-  { id: 'military_id',     label: 'Military ID',       desc: 'Active duty, veteran, or dependent', docType: 'military_id'  },
-  { id: 'passport_card',   label: 'Passport Card',     desc: 'U.S. passport card',               docType: 'passport'        },
+  { id: 'drivers_license', label: "Driver's License", desc: "State-issued driver's license", docType: 'drivers_license' },
+  { id: 'passport', label: 'Passport', desc: 'U.S. or international passport', docType: 'passport' },
+  { id: 'state_id', label: 'State ID', desc: 'Non-driver government-issued ID', docType: 'state_id' },
+  { id: 'military_id', label: 'Military ID', desc: 'Active duty, veteran, or dependent', docType: 'military_id' },
+  { id: 'passport_card', label: 'Passport Card', desc: 'U.S. passport card', docType: 'passport' },
 ];
 
 const ID_TYPE_LABELS = Object.fromEntries(ID_TYPES.map((t) => [t.id, t.label]));
 
 const WIZARD_STEPS = [
-  { id: 'type',   label: 'ID Type' },
+  { id: 'type', label: 'ID Type' },
   { id: 'upload', label: 'Upload' },
   { id: 'selfie', label: 'Selfie' },
   { id: 'review', label: 'Review' },
@@ -86,11 +92,11 @@ const STATUS_LABEL = { verified: '✓ Verified', pending: '○ Pending', rejecte
 
 
 function getDocLabel(t) { return TYPE_MAP[t]?.label ?? t; }
-function getDocIcon(t)  { return TYPE_MAP[t]?.Icon ?? Icon.File; }
+function getDocIcon(t) { return TYPE_MAP[t]?.Icon ?? Icon.File; }
 
 function groupStatus(docs) {
   if (docs.some((d) => d.status === 'rejected')) return 'rejected';
-  if (docs.some((d) => d.status === 'pending'))  return 'pending';
+  if (docs.some((d) => d.status === 'pending')) return 'pending';
   return 'verified';
 }
 
@@ -108,11 +114,11 @@ function UploadModal({
   viewingId,
 }) {
   const [selectedDocType, setSelectedDocType] = useState(null);
-  const [files, setFiles]         = useState([]);
-  const [issuer, setIssuer]       = useState('');
+  const [files, setFiles] = useState([]);
+  const [issuer, setIssuer] = useState('');
   const [expiresAt, setExpiresAt] = useState('');
-  const [submitting, setSubmitting]   = useState(false);
-  const [progress, setProgress]       = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [progress, setProgress] = useState(null);
   const [submitError, setSubmitError] = useState(null);
   const [showReplaceWarn, setShowReplaceWarn] = useState(false);
   const [showTypePicker, setShowTypePicker] = useState(true);
@@ -354,7 +360,7 @@ function UploadModal({
 function DocGroupCard({ docType, docs, onView, onReplace, onDelete, replacingId, deletingId, viewingId }) {
   const [expanded, setExpanded] = useState(false);
   const [selectedDocId, setSelectedDocId] = useState(null);
-  const label  = getDocLabel(docType);
+  const label = getDocLabel(docType);
   const status = groupStatus(docs);
 
   return (
@@ -422,9 +428,9 @@ function DocGroupCard({ docType, docs, onView, onReplace, onDelete, replacingId,
 
 function InfoResponseModal({ request, onClose, onResponded }) {
   const [message, setMessage] = useState('');
-  const [files, setFiles]     = useState([]);
+  const [files, setFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError]     = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -574,9 +580,17 @@ function VerificationDetailModal({ verification, infoRequests, onClose, onRefres
                   <span className="vf-detail-value">{new Date(verification.reviewedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                 </div>
               )}
-              {verification.reviewerNotes && (
+              {verification.status?.toUpperCase() === 'REJECTED' && (
+                <div className="vf-detail-row vf-detail-row-full" style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '12px', borderRadius: '8px', marginTop: '8px' }}>
+                  <span className="vf-detail-label" style={{ color: '#ef4444', fontWeight: '600' }}>Reason for Rejection</span>
+                  <div className="vf-reviewer-note" style={{ color: '#ef4444', marginTop: '4px' }}>
+                    {cleanReviewerNotes(verification.reviewerNotes) || 'Your identity verification could not be automatically approved. Please ensure your documents are clear, well-lit, and match your profile information.'}
+                  </div>
+                </div>
+              )}
+              {verification.status?.toUpperCase() === 'VERIFIED' && verification.reviewerNotes && (
                 <div className="vf-detail-row vf-detail-row-full">
-                  <span className="vf-detail-label">Reviewer Note</span>
+                  <span className="vf-detail-label">Automated System Note</span>
                   <div className="vf-reviewer-note">{verification.reviewerNotes}</div>
                 </div>
               )}
@@ -590,7 +604,7 @@ function VerificationDetailModal({ verification, infoRequests, onClose, onRefres
               {[
                 { label: 'Front ID', side: 'front', available: !!verification.hasFrontFile },
                 { label: 'Back ID', side: 'back', available: !!verification.hasBackFile },
-                { label: 'Selfie',   side: 'selfie', available: !!verification.hasSelfieFile },
+                { label: 'Selfie', side: 'selfie', available: !!verification.hasSelfieFile },
               ].map((item) => (
                 <div key={item.label} className="vf-submitted-doc-row">
                   <span className="vf-submitted-doc-icon"><Icon.File /></span>
@@ -713,23 +727,26 @@ function ExistingDocPicker({ docs, selectedDocId, onSelect }) {
 // ── Verification Wizard ───────────────────────────────────────────────────────
 
 function VerificationWizard({ documents, onCancel, onSubmitted, onDocumentUploaded }) {
-  const [step, setStep]             = useState(0);
+  const [step, setStep] = useState(0);
   const [selectedType, setSelectedType] = useState(null);
-  const [frontFile, setFrontFile]   = useState(null);
-  const [backFile, setBackFile]     = useState(null);
+  const [frontFile, setFrontFile] = useState(null);
+  const [backFile, setBackFile] = useState(null);
   const [selfieFile, setSelfieFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analyzingSteps, setAnalyzingSteps] = useState({ ocr: false, face: false });
+  const [localVerification, setLocalVerification] = useState({ status: 'none' });
 
   // For using existing docs
-  const [frontDocId, setFrontDocId]   = useState(null);
-  const [backDocId, setBackDocId]     = useState(null);
+  const [frontDocId, setFrontDocId] = useState(null);
+  const [backDocId, setBackDocId] = useState(null);
   const [loadingDocFile, setLoadingDocFile] = useState(false);
 
   // Camera
-  const [cameraActive, setCameraActive]   = useState(false);
-  const [cameraError, setCameraError]     = useState(null);
-  const videoRef  = useRef(null);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
+  const videoRef = useRef(null);
   const streamRef = useRef(null);
   const canvasRef = useRef(null);
 
@@ -766,9 +783,9 @@ function VerificationWizard({ documents, onCancel, onSubmitted, onDocumentUpload
   // Get docs matching the selected ID type
   const matchingDocs = selectedType
     ? documents.filter((d) => {
-        const idType = ID_TYPES.find((t) => t.id === selectedType);
-        return idType && d.documentType === idType.docType;
-      })
+      const idType = ID_TYPES.find((t) => t.id === selectedType);
+      return idType && d.documentType === idType.docType;
+    })
     : [];
 
   async function resolveFile(file, docId, fileName) {
@@ -795,9 +812,11 @@ function VerificationWizard({ documents, onCancel, onSubmitted, onDocumentUpload
   async function handleSubmit() {
     setSubmitError(null);
     setSubmitting(true);
+    setAnalyzingSteps({ ocr: false, face: false });
+    setIsAnalyzing(true);
     try {
       const resolvedFront = await resolveFile(frontFile, frontDocId, 'front.jpg');
-      const resolvedBack  = await resolveFile(backFile,  backDocId,  'back.jpg');
+      const resolvedBack = await resolveFile(backFile, backDocId, 'back.jpg');
 
       // If new files were uploaded (not from existing docs), also save them to Documents
       if (frontFile) {
@@ -811,9 +830,34 @@ function VerificationWizard({ documents, onCancel, onSubmitted, onDocumentUpload
       }
 
       const result = await submitVerification({ idType: selectedType, frontFile: resolvedFront, backFile: resolvedBack, selfieFile });
-      onSubmitted(result);
+      setLocalVerification(result);
+
+      // Simulated progress for UI feedback
+      setTimeout(() => setAnalyzingSteps(prev => ({ ...prev, ocr: true })), 800);
+      setTimeout(() => setAnalyzingSteps(prev => ({ ...prev, face: true })), 1600);
+
+      if (result.status === 'pending') {
+        const pollInterval = setInterval(async () => {
+          try {
+            const statusUpdate = await fetchVerificationStatus();
+            if (statusUpdate.status !== 'pending') {
+              setLocalVerification(statusUpdate);
+              setIsAnalyzing(false);
+              clearInterval(pollInterval);
+              // Small delay to let user see success before auto-closing
+              setTimeout(() => onSubmitted(statusUpdate), 2000);
+            }
+          } catch (pollErr) {
+            console.error('Error polling verification status:', pollErr);
+          }
+        }, 3000);
+      } else {
+        setIsAnalyzing(false);
+        onSubmitted(result);
+      }
     } catch (err) {
       setSubmitError(err.message);
+      setIsAnalyzing(false);
     } finally {
       setSubmitting(false);
     }
@@ -821,7 +865,7 @@ function VerificationWizard({ documents, onCancel, onSubmitted, onDocumentUpload
 
   const selectedIdType = ID_TYPES.find((t) => t.id === selectedType);
   const frontSource = frontDocId ? matchingDocs.find((d) => d.id === frontDocId) : null;
-  const backSource  = backDocId  ? matchingDocs.find((d) => d.id === backDocId)  : null;
+  const backSource = backDocId ? matchingDocs.find((d) => d.id === backDocId) : null;
 
   return (
     <div className="vf-wizard">
@@ -837,196 +881,272 @@ function VerificationWizard({ documents, onCancel, onSubmitted, onDocumentUpload
       </div>
 
       <div className="vf-wizard-card">
-        {/* Step 0: Select ID type */}
-        {step === 0 && (
-          <>
-            <h3 className="vf-wizard-card-title">Select Your Document Type</h3>
-            <p className="vf-wizard-card-desc">Choose the government-issued ID you'd like to use for verification.</p>
-            <div className="vf-id-types">
-              {ID_TYPES.map((t) => {
-                const hasExisting = documents.some((d) => d.documentType === t.docType);
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    className={'vf-id-type' + (selectedType === t.id ? ' selected' : '')}
-                    onClick={() => { if (selectedType !== t.id) { setSelectedType(t.id); setFrontFile(null); setBackFile(null); setFrontDocId(null); setBackDocId(null); } }}
-                  >
-                    <span className="vf-id-type-text">
-                      <span className="vf-id-type-label">{t.label}</span>
-                      <span className="vf-id-type-desc">{t.desc}</span>
-                    </span>
-                    {hasExisting && <span className="vf-id-type-has-doc" title="Document already uploaded">doc on file</span>}
-                    {selectedType === t.id && <span className="vf-id-type-check"><Icon.Check /></span>}
-                  </button>
-                );
-              })}
+        {localVerification?.status === 'verified' ? (
+          <div className="vi-verified-wrap" style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div className="vi-verified-icon-lg"><Icon.CheckLg /></div>
+            <h3 className="vf-wizard-card-title">Identity Verified</h3>
+            <p className="vf-wizard-card-desc">Your identity has been successfully verified. You now have full access to all Digital ID services.</p>
+            <div className="vi-verified-details" style={{ marginTop: '24px', textAlign: 'left' }}>
+              <div className="vi-detail-row">
+                <span className="vi-detail-label">Verification Level</span>
+                <span className="vi-detail-value vi-detail-highlight">IAL2 — Strong Identity</span>
+              </div>
+              <div className="vi-detail-row">
+                <span className="vi-detail-label">Biometric Match</span>
+                <span className="vi-detail-value vi-detail-highlight">Confirmed ✅</span>
+              </div>
             </div>
-          </>
-        )}
+          </div>
+        ) : localVerification?.status === 'rejected' ? (
+          <div className="vi-rejected-wrap" style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div className="vi-rejected-icon-lg"><Icon.X /></div>
+            <h3 className="vf-wizard-card-title">Verification Failed</h3>
+            <p className="vf-wizard-card-desc" style={{ color: 'var(--error)' }}>
+              {localVerification.reviewerNotes || 'Documents or selfie did not meet the requirements.'}
+            </p>
+            <button type="button" className="vf-btn-primary" style={{ marginTop: '30px', width: '100%' }} onClick={() => { setLocalVerification({ status: 'none' }); setStep(0); }}>
+              Try Again
+            </button>
+          </div>
+        ) : isAnalyzing || localVerification?.status === 'pending' ? (
+          <div className="vf-analyzing-container">
+            <div className="vf-analyze-icon">
+              <Icon.IdCard />
+              <div className="vf-scan-line"></div>
+            </div>
+            
+            <h3 className="vf-wizard-card-title" style={{ padding: 0, marginBottom: '8px' }}>
+              {isAnalyzing ? 'Analyzing Your Identity' : 'Under Review'}
+            </h3>
+            <p className="vf-wizard-card-desc" style={{ padding: 0, maxWidth: '340px', margin: '0 auto' }}>
+              {isAnalyzing 
+                ? "Our automated system is currently verifying your documents and matching your biometrics." 
+                : "Your identity is currently being finalized. This usually takes just a few more seconds."}
+            </p>
 
-        {/* Step 1: Upload */}
-        {step === 1 && (
-          <>
-            <h3 className="vf-wizard-card-title">Upload Your Document</h3>
-            <p className="vf-wizard-card-desc">Take a clear photo or upload a scan of your {selectedIdType?.label || 'ID'}.</p>
+            <div className="vf-loading-dots">
+              <span></span><span></span><span></span>
+            </div>
 
-            <div className="vf-upload-areas">
-              {/* Front */}
-              <div className="vf-upload-box">
-                <span className="vf-upload-icon"><Icon.Camera /></span>
-                <span className="vf-upload-label">Front of Document</span>
-                {frontFile ? (
-                  <div className="vf-upload-file-row">
-                    <span className="vf-upload-check"><Icon.Check /> {frontFile.name}</span>
-                    <button type="button" className="vf-upload-remove" onClick={() => setFrontFile(null)} title="Remove"><Icon.X /></button>
-                  </div>
-                ) : frontDocId ? (
-                  <div className="vf-upload-file-row">
-                    <span className="vf-upload-check"><Icon.Check /> {frontSource?.originalFileName || 'Existing doc'}</span>
-                    <button type="button" className="vf-upload-remove" onClick={() => setFrontDocId(null)} title="Remove"><Icon.X /></button>
-                  </div>
+            <div className="vf-analyzing-steps">
+              <div className={`vf-analyzing-step ${(!analyzingSteps.ocr && !analyzingSteps.face) ? 'active' : 'done'}`}>
+                {analyzingSteps.ocr ? (
+                  <span className="vf-analyzing-step-check"><Icon.Check /></span>
                 ) : (
-                  <label className="vf-upload-btn">
-                    Choose File
-                    <input type="file" accept="image/*" onChange={(e) => setFrontFile(e.target.files[0] || null)} hidden />
-                  </label>
+                  <span className="vf-analyzing-step-spinner" />
                 )}
-
-                {!frontFile && !frontDocId && (
-                  <ExistingDocPicker
-                    docType={selectedIdType?.docType}
-                    docs={matchingDocs}
-                    selectedDocId={frontDocId}
-                    onSelect={setFrontDocId}
-                  />
-                )}
+                <span>Reading Document & OCR</span>
               </div>
-
-              {/* Back */}
-              <div className="vf-upload-box">
-                <span className="vf-upload-icon"><Icon.Camera /></span>
-                <span className="vf-upload-label">Back of Document</span>
-                {backFile ? (
-                  <div className="vf-upload-file-row">
-                    <span className="vf-upload-check"><Icon.Check /> {backFile.name}</span>
-                    <button type="button" className="vf-upload-remove" onClick={() => setBackFile(null)} title="Remove"><Icon.X /></button>
-                  </div>
-                ) : backDocId ? (
-                  <div className="vf-upload-file-row">
-                    <span className="vf-upload-check"><Icon.Check /> {backSource?.originalFileName || 'Existing doc'}</span>
-                    <button type="button" className="vf-upload-remove" onClick={() => setBackDocId(null)} title="Remove"><Icon.X /></button>
-                  </div>
+              
+              <div className={`vf-analyzing-step ${analyzingSteps.ocr && !analyzingSteps.face ? 'active' : (analyzingSteps.face ? 'done' : '')}`}>
+                {analyzingSteps.face ? (
+                  <span className="vf-analyzing-step-check"><Icon.Check /></span>
                 ) : (
-                  <label className="vf-upload-btn">
-                    Choose File
-                    <input type="file" accept="image/*" onChange={(e) => setBackFile(e.target.files[0] || null)} hidden />
-                  </label>
+                  analyzingSteps.ocr ? <span className="vf-analyzing-step-spinner" /> : null
                 )}
-                {!backFile && !backDocId && (
-                  <ExistingDocPicker
-                    docType={selectedIdType?.docType}
-                    docs={matchingDocs}
-                    selectedDocId={backDocId}
-                    onSelect={setBackDocId}
-                  />
-                )}
-                <span className="vf-upload-optional">Optional for passports</span>
+                <span>Biometric Face Matching</span>
               </div>
-            </div>
-          </>
-        )}
 
-        {/* Step 2: Selfie */}
-        {step === 2 && (
-          <>
-            <h3 className="vf-wizard-card-title">Take a Selfie</h3>
-            <p className="vf-wizard-card-desc">We'll compare your selfie to the photo on your ID to confirm your identity.</p>
-            <div className="vf-selfie-area">
-              <div className="vf-selfie-frame">
-                {cameraActive ? (
-                  <><video ref={videoRef} autoPlay playsInline muted className="vf-selfie-preview" /><div className="vf-selfie-face-guide" /></>
-                ) : selfieFile ? (
-                  <img src={URL.createObjectURL(selfieFile)} alt="Selfie preview" className="vf-selfie-preview" />
-                ) : (
-                  <><span className="vf-selfie-icon"><Icon.User /></span><span className="vf-selfie-hint">Position your face in the frame</span></>
-                )}
-              </div>
-              <canvas ref={canvasRef} hidden />
-              {cameraError && <p className="vf-camera-error">{cameraError}</p>}
-              <div className="vf-selfie-actions">
-                {cameraActive ? (
-                  <>
-                    <button type="button" className="vf-selfie-btn vf-selfie-btn-capture" onClick={capturePhoto}>Take Photo</button>
-                    <button type="button" className="vf-btn-outline vf-selfie-btn-cancel" onClick={stopCamera}>Cancel</button>
-                  </>
-                ) : (
-                  <button type="button" className="vf-selfie-btn" onClick={startCamera}>
-                    {selfieFile ? 'Retake Selfie' : 'Open Camera'}
-                  </button>
-                )}
+              <div className={`vf-analyzing-step ${analyzingSteps.face ? 'active' : ''}`}>
+                {analyzingSteps.face ? <span className="vf-analyzing-step-spinner" /> : null}
+                <span>Finalizing Verification</span>
               </div>
             </div>
-            <div className="vf-tips">
-              <h4>Tips for a good selfie</h4>
-              <ul>
-                <li>Ensure good lighting on your face</li>
-                <li>Remove hats, glasses, or face coverings</li>
-                <li>Look directly at the camera</li>
-                <li>Keep a neutral expression</li>
-              </ul>
-            </div>
-          </>
-        )}
-
-        {/* Step 3: Review */}
-        {step === 3 && (
-          <>
-            <h3 className="vf-wizard-card-title">Review & Submit</h3>
-            <p className="vf-wizard-card-desc">Please review your information before submitting.</p>
-            <div className="vf-review-items">
-              <div className="vf-review-item">
-                <span className="vf-review-label">Document Type</span>
-                <span className="vf-review-value">{ID_TYPE_LABELS[selectedType]}</span>
-              </div>
-              <div className="vf-review-item">
-                <span className="vf-review-label">Front Image</span>
-                <span className="vf-review-value vf-review-check">
-                  {frontFile ? frontFile.name : frontDocId ? `Existing: ${frontSource?.originalFileName || 'doc'}` : '—'}
-                </span>
-              </div>
-              <div className="vf-review-item">
-                <span className="vf-review-label">Back Image</span>
-                <span className="vf-review-value">
-                  {backFile ? backFile.name : backDocId ? `Existing: ${backSource?.originalFileName || 'doc'}` : 'Not provided'}
-                </span>
-              </div>
-              <div className="vf-review-item">
-                <span className="vf-review-label">Selfie</span>
-                <span className="vf-review-value vf-review-check">{selfieFile ? 'Captured' : '—'}</span>
-              </div>
-            </div>
-            <div className="vf-consent">
-              <p>By submitting, you consent to Digital ID processing your biometric data and identity documents for verification purposes in accordance with our Privacy Policy.</p>
-            </div>
-            {submitError && <p className="vf-submit-error">{submitError}</p>}
-            {loadingDocFile && <p className="vf-loading-inline">Loading existing document file…</p>}
-          </>
-        )}
-      </div>
-
-      <div className="vf-wizard-actions">
-        <button type="button" className="vf-btn-outline" onClick={step > 0 ? () => setStep(step - 1) : onCancel} disabled={submitting}>
-          {step > 0 ? 'Back' : 'Cancel'}
-        </button>
-        {step < WIZARD_STEPS.length - 1 ? (
-          <button type="button" className="vf-btn-primary" onClick={() => setStep(step + 1)} disabled={!canProceed()}>Continue</button>
+          </div>
         ) : (
-          <button type="button" className="vf-btn-primary" onClick={handleSubmit} disabled={submitting || loadingDocFile}>
-            {submitting ? 'Submitting…' : 'Submit Verification'}
-          </button>
+          <>
+            {/* Step 0: Select ID type */}
+            {step === 0 && (
+              <>
+                <h3 className="vf-wizard-card-title">Select Your Document Type</h3>
+                <p className="vf-wizard-card-desc">Choose the government-issued ID you'd like to use for verification.</p>
+                <div className="vf-id-types">
+                  {ID_TYPES.map((t) => {
+                    const hasExisting = documents.some((d) => d.documentType === t.docType);
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        className={'vf-id-type' + (selectedType === t.id ? ' selected' : '')}
+                        onClick={() => { if (selectedType !== t.id) { setSelectedType(t.id); setFrontFile(null); setBackFile(null); setFrontDocId(null); setBackDocId(null); } }}
+                      >
+                        <span className="vf-id-type-text">
+                          <span className="vf-id-type-label">{t.label}</span>
+                          <span className="vf-id-type-desc">{t.desc}</span>
+                        </span>
+                        {hasExisting && <span className="vf-id-type-has-doc" title="Document already uploaded">doc on file</span>}
+                        {selectedType === t.id && <span className="vf-id-type-check"><Icon.Check /></span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {/* Step 1: Upload */}
+            {step === 1 && (
+              <>
+                <h3 className="vf-wizard-card-title">Upload Your Document</h3>
+                <p className="vf-wizard-card-desc">Take a clear photo or upload a scan of your {selectedIdType?.label || 'ID'}.</p>
+
+                <div className="vf-upload-areas">
+                  {/* Front */}
+                  <div className="vf-upload-box">
+                    <span className="vf-upload-icon"><Icon.Camera /></span>
+                    <span className="vf-upload-label">Front of Document</span>
+                    {frontFile ? (
+                      <div className="vf-upload-file-row">
+                        <span className="vf-upload-check"><Icon.Check /> {frontFile.name}</span>
+                        <button type="button" className="vf-upload-remove" onClick={() => setFrontFile(null)} title="Remove"><Icon.X /></button>
+                      </div>
+                    ) : frontDocId ? (
+                      <div className="vf-upload-file-row">
+                        <span className="vf-upload-check"><Icon.Check /> {frontSource?.originalFileName || 'Existing doc'}</span>
+                        <button type="button" className="vf-upload-remove" onClick={() => setFrontDocId(null)} title="Remove"><Icon.X /></button>
+                      </div>
+                    ) : (
+                      <label className="vf-upload-btn">
+                        Choose File
+                        <input type="file" accept="image/*" onChange={(e) => setFrontFile(e.target.files[0] || null)} hidden />
+                      </label>
+                    )}
+
+                    {!frontFile && !frontDocId && (
+                      <ExistingDocPicker
+                        docs={matchingDocs}
+                        selectedDocId={frontDocId}
+                        onSelect={setFrontDocId}
+                      />
+                    )}
+                  </div>
+
+                  {/* Back */}
+                  <div className="vf-upload-box">
+                    <span className="vf-upload-icon"><Icon.Camera /></span>
+                    <span className="vf-upload-label">Back of Document</span>
+                    {backFile ? (
+                      <div className="vf-upload-file-row">
+                        <span className="vf-upload-check"><Icon.Check /> {backFile.name}</span>
+                        <button type="button" className="vf-upload-remove" onClick={() => setBackFile(null)} title="Remove"><Icon.X /></button>
+                      </div>
+                    ) : backDocId ? (
+                      <div className="vf-upload-file-row">
+                        <span className="vf-upload-check"><Icon.Check /> {backSource?.originalFileName || 'Existing doc'}</span>
+                        <button type="button" className="vf-upload-remove" onClick={() => setBackDocId(null)} title="Remove"><Icon.X /></button>
+                      </div>
+                    ) : (
+                      <label className="vf-upload-btn">
+                        Choose File
+                        <input type="file" accept="image/*" onChange={(e) => setBackFile(e.target.files[0] || null)} hidden />
+                      </label>
+                    )}
+                    {!backFile && !backDocId && (
+                      <ExistingDocPicker
+                        docs={matchingDocs}
+                        selectedDocId={backDocId}
+                        onSelect={setBackDocId}
+                      />
+                    )}
+                    <span className="vf-upload-optional">Optional for passports</span>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Step 2: Selfie */}
+            {step === 2 && (
+              <>
+                <h3 className="vf-wizard-card-title">Take a Selfie</h3>
+                <p className="vf-wizard-card-desc">We'll compare your selfie to the photo on your ID to confirm your identity.</p>
+                <div className="vf-selfie-area">
+                  <div className="vf-selfie-frame">
+                    {cameraActive ? (
+                      <><video ref={videoRef} autoPlay playsInline muted className="vf-selfie-preview" /><div className="vf-selfie-face-guide" /></>
+                    ) : selfieFile ? (
+                      <img src={URL.createObjectURL(selfieFile)} alt="Selfie preview" className="vf-selfie-preview" />
+                    ) : (
+                      <><span className="vf-selfie-icon"><Icon.User /></span><span className="vf-selfie-hint">Position your face in the frame</span></>
+                    )}
+                  </div>
+                  <canvas ref={canvasRef} hidden />
+                  {cameraError && <p className="vf-camera-error">{cameraError}</p>}
+                  <div className="vf-selfie-actions">
+                    {cameraActive ? (
+                      <>
+                        <button type="button" className="vf-selfie-btn vf-selfie-btn-capture" onClick={capturePhoto}>Take Photo</button>
+                        <button type="button" className="vf-btn-outline vf-selfie-btn-cancel" onClick={stopCamera}>Cancel</button>
+                      </>
+                    ) : (
+                      <button type="button" className="vf-selfie-btn" onClick={startCamera}>
+                        {selfieFile ? 'Retake Selfie' : 'Open Camera'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="vf-tips">
+                  <h4>Tips for a good selfie</h4>
+                  <ul>
+                    <li>Ensure good lighting on your face</li>
+                    <li>Remove hats, glasses, or face coverings</li>
+                    <li>Look directly at the camera</li>
+                    <li>Keep a neutral expression</li>
+                  </ul>
+                </div>
+              </>
+            )}
+
+            {/* Step 3: Review */}
+            {step === 3 && (
+              <>
+                <h3 className="vf-wizard-card-title">Review & Submit</h3>
+                <p className="vf-wizard-card-desc">Please review your information before submitting.</p>
+                <div className="vf-review-items">
+                  <div className="vf-review-item">
+                    <span className="vf-review-label">Document Type</span>
+                    <span className="vf-review-value">{ID_TYPE_LABELS[selectedType]}</span>
+                  </div>
+                  <div className="vf-review-item">
+                    <span className="vf-review-label">Front Image</span>
+                    <span className="vf-review-value vf-review-check">
+                      {frontFile ? frontFile.name : frontDocId ? `Existing: ${frontSource?.originalFileName || 'doc'}` : '—'}
+                    </span>
+                  </div>
+                  <div className="vf-review-item">
+                    <span className="vf-review-label">Back Image</span>
+                    <span className="vf-review-value">
+                      {backFile ? backFile.name : backDocId ? `Existing: ${backSource?.originalFileName || 'doc'}` : 'Not provided'}
+                    </span>
+                  </div>
+                  <div className="vf-review-item">
+                    <span className="vf-review-label">Selfie</span>
+                    <span className="vf-review-value vf-review-check">{selfieFile ? 'Captured' : '—'}</span>
+                  </div>
+                </div>
+                <div className="vf-consent">
+                  <p>By submitting, you consent to Digital ID processing your biometric data and identity documents for verification purposes in accordance with our Privacy Policy.</p>
+                </div>
+                {submitError && <p className="vf-submit-error">{submitError}</p>}
+                {loadingDocFile && <p className="vf-loading-inline">Loading existing document file…</p>}
+              </>
+            )}
+          </>
         )}
       </div>
+
+      {localVerification?.status === 'none' && !isAnalyzing && (
+        <div className="vf-wizard-actions">
+          <button type="button" className="vf-btn-outline" onClick={step > 0 ? () => setStep(step - 1) : onCancel} disabled={submitting}>
+            {step > 0 ? 'Back' : 'Cancel'}
+          </button>
+          {step < WIZARD_STEPS.length - 1 ? (
+            <button type="button" className="vf-btn-primary" onClick={() => setStep(step + 1)} disabled={!canProceed()}>Continue</button>
+          ) : (
+            <button type="button" className="vf-btn-primary" onClick={handleSubmit} disabled={submitting || loadingDocFile}>
+              {submitting ? 'Processing…' : 'Submit Verification'}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1037,9 +1157,9 @@ function VerificationsSection({ documents, onDocumentUploaded }) {
   // Identity verification state
   const [verification, setVerification] = useState(null);
   const [statusLoading, setStatusLoading] = useState(true);
-  const [infoRequests, setInfoRequests]   = useState([]);
-  const [showWizard, setShowWizard]       = useState(false);
-  const [showDetail, setShowDetail]       = useState(false);
+  const [infoRequests, setInfoRequests] = useState([]);
+  const [showWizard, setShowWizard] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
 
   const loadStatus = useCallback(() => {
     fetchVerificationStatus()
@@ -1189,10 +1309,13 @@ function VerificationsSection({ documents, onDocumentUploaded }) {
                 <Icon.CheckLg /> Your identity is verified — you have full access to all Digital ID services.
               </div>
             )}
-            {(verification.status === 'REJECTED' || verification.status === 'rejected') && (
+            {(verification.status?.toUpperCase() === 'REJECTED') && (
               <div className="vf-verif-rejected-note">
-                {verification.reviewerNotes && <div className="vf-verif-rejected-reason">{verification.reviewerNotes}</div>}
-                <button type="button" className="vf-btn-primary" style={{ marginTop: 8 }} onClick={() => setShowWizard(true)}>
+                <div className="vf-verif-rejected-title">Verification Failed:</div>
+                <div className="vf-verif-rejected-reason">
+                  {cleanReviewerNotes(verification.reviewerNotes) || 'Your identity verification could not be automatically approved. Please ensure your documents are clear, well-lit, and match your profile information.'}
+                </div>
+                <button type="button" className="vf-btn-primary vf-btn-resubmit" onClick={() => setShowWizard(true)}>
                   Resubmit Verification
                 </button>
               </div>
@@ -1239,13 +1362,13 @@ function DocumentsSection({ documents, loading, error, onRetry, onUpload, onRepl
 
   return (
     <div className="vf-docs-section">
-        <div className="vf-section-header">
-          <div>
-            <h3 className="vf-section-title">Documents</h3>
-            <p className="vf-section-desc">Store your identity documents and reuse them in verification flows whenever you need them.</p>
-          </div>
-          <button type="button" className="vf-upload-trigger" onClick={() => setShowUpload(true)}>
-            <Icon.Plus /> Upload Document
+      <div className="vf-section-header">
+        <div>
+          <h3 className="vf-section-title">Documents</h3>
+          <p className="vf-section-desc">Store your identity documents and reuse them in verification flows whenever you need them.</p>
+        </div>
+        <button type="button" className="vf-upload-trigger" onClick={() => setShowUpload(true)}>
+          <Icon.Plus /> Upload Document
         </button>
       </div>
 
@@ -1333,10 +1456,10 @@ export default function VerificationPage() {
   const [activeTab, setActiveTab] = useState('verifications');
   const [documents, setDocuments] = useState([]);
   const [docsLoading, setDocsLoading] = useState(true);
-  const [docsError, setDocsError]     = useState(null);
-  const [deletingId, setDeletingId]   = useState(null);
+  const [docsError, setDocsError] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
   const [replacingId, setReplacingId] = useState(null);
-  const [viewingId, setViewingId]     = useState(null);
+  const [viewingId, setViewingId] = useState(null);
 
   const loadDocuments = useCallback(() => {
     setDocsLoading(true);

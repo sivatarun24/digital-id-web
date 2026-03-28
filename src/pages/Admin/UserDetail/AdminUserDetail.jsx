@@ -15,6 +15,8 @@ import {
   adminListDocuments,
   adminGetDocumentFile,
   adminGetVerificationFile,
+  adminListCredentials,
+  adminDeleteCredential,
 } from '../../../api/admin';
 import {
   adminGetInfoRequests,
@@ -154,7 +156,9 @@ export default function AdminUserDetail() {
   // Separately loaded verification + documents (in case adminGetUser doesn't embed them)
   const [verification, setVerification] = useState(undefined); // undefined = loading, null = none
   const [documents, setDocuments] = useState(null); // null = loading
+  const [credentials, setCredentials] = useState(null); // null = loading
   const [viewingDoc, setViewingDoc] = useState({});
+  const [credBusy, setCredBusy] = useState({});
 
   const refreshFlags = useCallback(() => {
     adminGetInfoRequests(Number(id)).then(setInfoRequests).catch(() => {});
@@ -189,6 +193,11 @@ export default function AdminUserDetail() {
             setDocuments(all.filter(d => d.userId === uid));
           }).catch(() => setDocuments([]));
         }
+
+        adminListCredentials('').then(all => {
+          const uid = Number(id);
+          setCredentials(all.filter(c => c.userId === uid));
+        }).catch(() => setCredentials([]));
       })
       .catch(e => setError(e.message));
     refreshFlags();
@@ -232,12 +241,35 @@ export default function AdminUserDetail() {
     }
   }
 
+  async function deleteCred(credId) {
+    if (!window.confirm('Are you sure you want to permanently delete this credential submission? This will also remove the supporting documents.')) return;
+    setCredBusy(b => ({ ...b, [credId]: true }));
+    try {
+      await adminDeleteCredential(credId);
+      setCredentials(prev => (prev || []).filter(c => c.id !== credId));
+      // Refresh documents as they might be linked
+      adminListDocuments('').then(all => {
+        const uid = Number(id);
+        setDocuments(all.filter(d => d.userId === uid));
+      }).catch(() => {});
+    } catch (e) { setError(e.message); }
+    finally { setCredBusy(b => ({ ...b, [credId]: false })); }
+  }
+
   async function reviewVerif(status) {
     if (!verification) return;
+    const notes = window.prompt(status === 'REJECTED' ? 'Enter rejection reason (optional):' : 'Enter approval note (optional):');
+    if (notes === null) return; // Cancelled prompt
+    
     setVerifBusy(true);
     try {
-      await adminReviewVerification(verification.id, status);
-      setVerification(v => ({ ...v, status, reviewedAt: new Date().toISOString() }));
+      await adminReviewVerification(verification.id, status, notes.trim() || null);
+      setVerification(v => ({ 
+        ...v, 
+        status, 
+        reviewedAt: new Date().toISOString(),
+        reviewerNotes: notes.trim() || null 
+      }));
     } catch (e) { setError(e.message); }
     finally { setVerifBusy(false); }
   }
@@ -628,6 +660,49 @@ export default function AdminUserDetail() {
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                 <div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+                    Professional Credentials {credentials?.length > 0 ? `(${credentials.length})` : ''}
+                  </div>
+                  {!credentials ? (
+                    <div className="admin-empty" style={{ padding: '24px 0' }}>Loading credentials…</div>
+                  ) : !credentials.length ? (
+                    <div className="admin-empty" style={{ padding: '24px 0' }}>No credentials submitted</div>
+                  ) : (
+                    <table className="admin-table" style={{ marginBottom: 24 }}>
+                      <thead>
+                        <tr>
+                          <th>Type</th>
+                          <th>Status</th>
+                          <th>Submitted</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {credentials.map(c => (
+                          <tr key={c.id}>
+                            <td className="td-primary">{(c.credentialType || '').replace(/_/g, ' ')}</td>
+                            <td>{verifBadge(c.status)}</td>
+                            <td>{c.submittedAt ? new Date(c.submittedAt).toLocaleDateString() : '—'}</td>
+                            <td>
+                              <div className="admin-row-actions">
+                                <button className="btn btn-ghost btn-sm" onClick={() => navigate('/admin/verifications')}>
+                                  View in Dashboard
+                                </button>
+                                <button
+                                  className="btn btn-danger btn-sm"
+                                  onClick={() => deleteCred(c.id)}
+                                  disabled={credBusy[c.id]}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+
                   <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
                     Uploaded Documents {documents?.length > 0 ? `(${documents.length})` : ''}
                   </div>

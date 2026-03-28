@@ -201,6 +201,7 @@ export const adminListCredentials = (status) => {
   const qs = status ? `?status=${status}` : '';
   return request(`/api/admin/credentials${qs}`);
 };
+
 export const adminReviewCredential = (id, status, notes) =>
   request(`/api/admin/credentials/${id}/review`, {
     method: 'PUT',
@@ -208,16 +209,27 @@ export const adminReviewCredential = (id, status, notes) =>
     body: JSON.stringify({ status, notes }),
   });
 
+export const adminDeleteCredential = (id) =>
+  request(`/api/admin/credentials/${id}`, {
+    method: 'DELETE',
+  });
+
 // ── Inst Admin Credentials ────────────────────────────────────────────────────
 export const instAdminListCredentials = (status) => {
   const qs = status ? `?status=${status}` : '';
   return request(`/api/inst-admin/credentials${qs}`);
 };
+
 export const instAdminReviewCredential = (id, status, notes) =>
   request(`/api/inst-admin/credentials/${id}/review`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status, notes }),
+  });
+
+export const instAdminDeleteCredential = (id) =>
+  request(`/api/inst-admin/credentials/${id}`, {
+    method: 'DELETE',
   });
 
 export async function adminGetCredentialFile(id) {

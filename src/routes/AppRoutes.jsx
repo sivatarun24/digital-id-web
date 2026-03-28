@@ -26,6 +26,7 @@ const ConnectedServices = lazy(() => import('../pages/ConnectedServices'));
 const Activity = lazy(() => import('../pages/Activity'));
 const Wallet = lazy(() => import('../pages/Wallet'));
 const Notifications = lazy(() => import('../pages/Notifications'));
+const VerifyCredential = lazy(() => import('../pages/Credentials/VerifyCredential'));
 
 // Admin pages
 const AdminDashboard = lazy(() => import('../pages/Admin/Dashboard/AdminDashboard'));
@@ -103,6 +104,7 @@ export default function AppRoutes() {
       <Route path="/verify" element={<LazyPage><Verify /></LazyPage>} />
       <Route path="/about" element={<LazyPage><About /></LazyPage>} />
       <Route path="/help" element={<LazyPage><Help /></LazyPage>} />
+      <Route path="/verify-credential" element={<LazyPage><VerifyCredential /></LazyPage>} />
       <Route path="/developer/register" element={<LazyPage><DeveloperRegister /></LazyPage>} />
       <Route path="/authorize" element={<ProtectedRoute><LazyPage><ConsentPage /></LazyPage></ProtectedRoute>} />
 

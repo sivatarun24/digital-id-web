@@ -43,6 +43,7 @@ export default function VerifyIdentity() {
   const [submitError, setSubmitError] = useState(null);
   const [verification, setVerification] = useState(null); // null = loading, {status} = loaded
   const [statusLoading, setStatusLoading] = useState(true);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const [cameraActive, setCameraActive]   = useState(false);
   const [cameraError, setCameraError]     = useState(null);
@@ -118,6 +119,7 @@ export default function VerifyIdentity() {
   async function handleSubmit() {
     setSubmitError(null);
     setSubmitting(true);
+    setIsAnalyzing(true);
     try {
       const result = await submitVerification({
         idType: selectedType,
@@ -126,8 +128,27 @@ export default function VerifyIdentity() {
         selfieFile,
       });
       setVerification(result);
+      
+      // If result is pending, start polling for completion
+      if (result.status === 'pending') {
+        const pollInterval = setInterval(async () => {
+          try {
+            const statusUpdate = await fetchVerificationStatus();
+            if (statusUpdate.status !== 'pending') {
+              setVerification(statusUpdate);
+              setIsAnalyzing(false);
+              clearInterval(pollInterval);
+            }
+          } catch (pollErr) {
+            console.error('Error polling verification status:', pollErr);
+          }
+        }, 3000); // Poll every 3 seconds
+      } else {
+        setIsAnalyzing(false);
+      }
     } catch (err) {
       setSubmitError(err.message);
+      setIsAnalyzing(false);
     } finally {
       setSubmitting(false);
     }
@@ -142,61 +163,6 @@ export default function VerifyIdentity() {
     );
   }
 
-  if (verification?.status === 'verified') {
-    return (
-      <div className="vi-page">
-        <div className="vi-page-header"><h2>Identity Verification</h2></div>
-        <div className="vi-verified-banner">
-          <span className="vi-verified-icon"><Icon.CheckLg /></span>
-          <div>
-            <span className="vi-verified-title">Identity Verified</span>
-            <span className="vi-verified-desc">
-              Your identity has been successfully verified. You have full access to all Digital ID services.
-            </span>
-          </div>
-        </div>
-        <div className="vi-card">
-          <div className="vi-verified-details">
-            <div className="vi-detail-row">
-              <span className="vi-detail-label">Verification Level</span>
-              <span className="vi-detail-value vi-detail-highlight">IAL2 — Strong Identity</span>
-            </div>
-            <div className="vi-detail-row">
-              <span className="vi-detail-label">Submitted On</span>
-              <span className="vi-detail-value">{verification.submittedAt || '—'}</span>
-            </div>
-            <div className="vi-detail-row">
-              <span className="vi-detail-label">Document Used</span>
-              <span className="vi-detail-value">{ID_TYPE_LABELS[verification.idType] || verification.idType || '—'}</span>
-            </div>
-            <div className="vi-detail-row">
-              <span className="vi-detail-label">Biometric Match</span>
-              <span className="vi-detail-value vi-detail-highlight">Confirmed</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (verification?.status === 'pending') {
-    return (
-      <div className="vi-page">
-        <div className="vi-page-header"><h2>Identity Verification</h2></div>
-        <div className="vi-success-state">
-          <div className="vi-success-icon-wrap"><Icon.Party /></div>
-          <h3>Verification Under Review</h3>
-          <p>Your documents are being reviewed. You'll receive a notification once verification is complete.</p>
-          <div className="vi-success-steps">
-            <div className="vi-success-step done"><span className="vi-success-dot" /><span>Documents uploaded</span></div>
-            <div className="vi-success-step done"><span className="vi-success-dot" /><span>Selfie captured</span></div>
-            <div className="vi-success-step active"><span className="vi-success-dot" /><span>Under review</span></div>
-            <div className="vi-success-step"><span className="vi-success-dot" /><span>Verification complete</span></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="vi-page">
@@ -218,163 +184,228 @@ export default function VerifyIdentity() {
       </div>
 
       <div className="vi-card vi-step-content">
-        {step === 0 && (
-          <>
-            <h3 className="vi-card-title">Select Your Document Type</h3>
-            <p className="vi-card-desc">Choose the government-issued ID you'd like to use for verification.</p>
-            <div className="vi-id-types">
-              {ID_TYPES.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  className={'vi-id-type' + (selectedType === t.id ? ' selected' : '')}
-                  onClick={() => { if (selectedType !== t.id) { setSelectedType(t.id); setFrontFile(null); setBackFile(null); } }}
-                >
-                  <span className="vi-id-type-icon"><t.IconComp /></span>
-                  <div className="vi-id-type-text">
-                    <span className="vi-id-type-label">{t.label}</span>
-                    <span className="vi-id-type-desc">{t.desc}</span>
-                  </div>
-                  {selectedType === t.id && <span className="vi-id-type-check"><Icon.Check /></span>}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-
-        {step === 1 && (
-          <>
-            <h3 className="vi-card-title">Upload Your Document</h3>
-            <p className="vi-card-desc">Take a clear photo or upload a scan of your {ID_TYPE_LABELS[selectedType] || 'ID'}.</p>
-            <div className="vi-upload-areas">
-              <div className="vi-upload-box">
-                <span className="vi-upload-icon"><Icon.Camera /></span>
-                <span className="vi-upload-label">Front of Document</span>
-                {frontFile ? (
-                  <div className="vi-upload-file-row">
-                    <span className="vi-upload-check"><Icon.Check /> {frontFile.name}</span>
-                    <button type="button" className="vi-upload-remove" onClick={() => setFrontFile(null)} title="Remove"><Icon.X /></button>
-                  </div>
-                ) : (
-                  <label className="vi-upload-btn">
-                    Choose File
-                    <input type="file" accept="image/*" onChange={(e) => setFrontFile(e.target.files[0] || null)} hidden />
-                  </label>
-                )}
+        {verification?.status === 'verified' ? (
+          <div className="vi-verified-wrap" style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div className="vi-verified-icon-lg"><Icon.CheckLg /></div>
+            <h3 className="vi-card-title">Identity Verified</h3>
+            <p className="vi-card-desc">Your identity has been successfully verified. You now have full access to all Digital ID services.</p>
+            <div className="vi-verified-details" style={{ marginTop: '24px', textAlign: 'left' }}>
+              <div className="vi-detail-row">
+                <span className="vi-detail-label">Verification Level</span>
+                <span className="vi-detail-value vi-detail-highlight">IAL2 — Strong Identity</span>
               </div>
-              <div className="vi-upload-box">
-                <span className="vi-upload-icon"><Icon.Camera /></span>
-                <span className="vi-upload-label">Back of Document</span>
-                {backFile ? (
-                  <div className="vi-upload-file-row">
-                    <span className="vi-upload-check"><Icon.Check /> {backFile.name}</span>
-                    <button type="button" className="vi-upload-remove" onClick={() => setBackFile(null)} title="Remove"><Icon.X /></button>
-                  </div>
-                ) : (
-                  <label className="vi-upload-btn">
-                    Choose File
-                    <input type="file" accept="image/*" onChange={(e) => setBackFile(e.target.files[0] || null)} hidden />
-                  </label>
-                )}
-                <span className="vi-upload-optional">Optional for passports</span>
+              <div className="vi-detail-row">
+                <span className="vi-detail-label">Submitted On</span>
+                <span className="vi-detail-value">{verification.submittedAt || new Date().toLocaleDateString()}</span>
+              </div>
+              <div className="vi-detail-row">
+                <span className="vi-detail-label">Biometric Match</span>
+                <span className="vi-detail-value vi-detail-highlight">Confirmed ✅</span>
               </div>
             </div>
-          </>
-        )}
-
-        {step === 2 && (
-          <>
-            <h3 className="vi-card-title">Take a Selfie</h3>
-            <p className="vi-card-desc">We'll compare your selfie to the photo on your ID to confirm your identity.</p>
-            <div className="vi-selfie-area">
-              <div className="vi-selfie-frame">
-                {cameraActive ? (
-                  <>
-                    <video ref={videoRef} autoPlay playsInline muted className="vi-selfie-preview" />
-                    <div className="vi-selfie-face-guide" />
-                  </>
-                ) : selfieFile ? (
-                  <img src={URL.createObjectURL(selfieFile)} alt="Selfie preview" className="vi-selfie-preview" />
-                ) : (
-                  <>
-                    <span className="vi-selfie-icon"><Icon.User /></span>
-                    <span className="vi-selfie-hint">Position your face in the frame</span>
-                  </>
-                )}
-              </div>
-              <canvas ref={canvasRef} hidden />
-              {cameraError && <p className="vi-camera-error">{cameraError}</p>}
-              <div className="vi-selfie-actions">
-                {cameraActive ? (
-                  <>
-                    <button type="button" className="vi-selfie-btn vi-selfie-btn-capture" onClick={capturePhoto}>
-                      Take Photo
-                    </button>
-                    <button type="button" className="vi-btn-outline vi-selfie-btn-cancel" onClick={stopCamera}>
-                      Cancel
-                    </button>
-                  </>
-                ) : (
-                  <button type="button" className="vi-selfie-btn" onClick={startCamera}>
-                    {selfieFile ? 'Retake Selfie' : 'Open Camera'}
-                  </button>
-                )}
-              </div>
-            </div>
-            <div className="vi-tips">
-              <h4>Tips for a good selfie</h4>
-              <ul>
-                <li>Ensure good lighting on your face</li>
-                <li>Remove hats, glasses, or face coverings</li>
-                <li>Look directly at the camera</li>
-                <li>Keep a neutral expression</li>
+            <button type="button" className="vi-btn-primary" style={{ marginTop: '30px', width: '100%' }} onClick={() => window.location.href = '/dashboard'}>
+              Return to Dashboard
+            </button>
+          </div>
+        ) : verification?.status === 'rejected' ? (
+          <div className="vi-rejected-wrap" style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div className="vi-rejected-icon-lg"><Icon.X /></div>
+            <h3 className="vi-card-title">Verification Failed</h3>
+            <p className="vi-card-desc" style={{ color: 'var(--error)' }}>
+              {verification.reviewerNotes || 'Documents or selfie did not meet the requirements.'}
+            </p>
+            <div className="vi-tips" style={{ marginTop: '24px', textAlign: 'left' }}>
+              <h4>Common Rejection Reasons</h4>
+              <ul style={{ fontSize: '0.85rem' }}>
+                <li>Blurry or low-resolution images</li>
+                <li>Mismatched names (use your legal name)</li>
+                <li>Selfie and ID photo do not match</li>
               </ul>
             </div>
-          </>
-        )}
-
-        {step === 3 && (
-          <>
-            <h3 className="vi-card-title">Review & Submit</h3>
-            <p className="vi-card-desc">Please review your information before submitting.</p>
-            <div className="vi-review-items">
-              <div className="vi-review-item">
-                <span className="vi-review-label">Document Type</span>
-                <span className="vi-review-value">{ID_TYPE_LABELS[selectedType]}</span>
-              </div>
-              <div className="vi-review-item">
-                <span className="vi-review-label">Front Image</span>
-                <span className="vi-review-value vi-review-check">{frontFile ? frontFile.name : '—'}</span>
-              </div>
-              <div className="vi-review-item">
-                <span className="vi-review-label">Back Image</span>
-                <span className="vi-review-value">{backFile ? backFile.name : 'Not provided'}</span>
-              </div>
-              <div className="vi-review-item">
-                <span className="vi-review-label">Selfie</span>
-                <span className="vi-review-value vi-review-check">{selfieFile ? 'Captured' : '—'}</span>
+            <button type="button" className="vi-btn-primary" style={{ marginTop: '30px', width: '100%' }} onClick={() => setVerification({ status: 'none' })}>
+              Try Again
+            </button>
+          </div>
+        ) : (isAnalyzing || (verification?.status === 'pending')) ? (
+          <div className="vi-analyzing-wrap">
+            <div className="vi-spinner"></div>
+            <h3>{isAnalyzing ? 'Analyzing Your Identity' : 'Under Review'}</h3>
+            <p>
+              {isAnalyzing 
+                ? "Our automated system is currently verifying your documents and matching your biometrics." 
+                : "Your identity is currently being finalized. This usually takes just a few more seconds."}
+            </p>
+            <div className="vi-tips" style={{ marginTop: '20px' }}>
+              <div className="vi-success-steps">
+                <div className="vi-success-step done"><span className="vi-success-dot"></span> Documents Uploaded</div>
+                <div className="vi-success-step done"><span className="vi-success-dot"></span> Face Matching...</div>
+                <div className={'vi-success-step' + (isAnalyzing ? ' active' : ' done')}><span className="vi-success-dot"></span> {isAnalyzing ? 'AI Verification...' : 'Processing Final Result'}</div>
               </div>
             </div>
-            <div className="vi-consent">
-              <p>By submitting, you consent to Digital ID processing your biometric data and identity documents for verification purposes in accordance with our Privacy Policy.</p>
-            </div>
-            {submitError && <p className="vi-submit-error">{submitError}</p>}
-          </>
-        )}
-      </div>
-
-      <div className="vi-actions">
-        {step > 0 && (
-          <button type="button" className="vi-btn-outline" onClick={handleBack} disabled={submitting}>Back</button>
-        )}
-        {step < STEPS.length - 1 ? (
-          <button type="button" className="vi-btn-primary" onClick={handleNext} disabled={!canProceed()}>Continue</button>
+          </div>
         ) : (
-          <button type="button" className="vi-btn-primary" onClick={handleSubmit} disabled={submitting}>
-            {submitting ? 'Submitting…' : 'Submit Verification'}
-          </button>
+          <>
+            {step === 0 && (
+              <>
+                <h3 className="vi-card-title">Select Your Document Type</h3>
+                <p className="vi-card-desc">Choose the government-issued ID you'd like to use for verification.</p>
+                <div className="vi-id-types">
+                  {ID_TYPES.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className={'vi-id-type' + (selectedType === t.id ? ' selected' : '')}
+                      onClick={() => { if (selectedType !== t.id) { setSelectedType(t.id); setFrontFile(null); setBackFile(null); } }}
+                    >
+                      <span className="vi-id-type-icon"><t.IconComp /></span>
+                      <div className="vi-id-type-text">
+                        <span className="vi-id-type-label">{t.label}</span>
+                        <span className="vi-id-type-desc">{t.desc}</span>
+                      </div>
+                      {selectedType === t.id && <span className="vi-id-type-check"><Icon.Check /></span>}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {step === 1 && (
+              <>
+                <h3 className="vi-card-title">Upload Your Document</h3>
+                <p className="vi-card-desc">Take a clear photo or upload a scan of your {ID_TYPE_LABELS[selectedType] || 'ID'}.</p>
+                <div className="vi-upload-areas">
+                  <div className="vi-upload-box">
+                    <span className="vi-upload-icon"><Icon.Camera /></span>
+                    <span className="vi-upload-label">Front of Document</span>
+                    {frontFile ? (
+                      <div className="vi-upload-file-row">
+                        <span className="vi-upload-check"><Icon.Check /> {frontFile.name}</span>
+                        <button type="button" className="vi-upload-remove" onClick={() => setFrontFile(null)} title="Remove"><Icon.X /></button>
+                      </div>
+                    ) : (
+                      <label className="vi-upload-btn">
+                        Choose File
+                        <input type="file" accept="image/*" onChange={(e) => setFrontFile(e.target.files[0] || null)} hidden />
+                      </label>
+                    )}
+                  </div>
+                  <div className="vi-upload-box">
+                    <span className="vi-upload-icon"><Icon.Camera /></span>
+                    <span className="vi-upload-label">Back of Document</span>
+                    {backFile ? (
+                      <div className="vi-upload-file-row">
+                        <span className="vi-upload-check"><Icon.Check /> {backFile.name}</span>
+                        <button type="button" className="vi-upload-remove" onClick={() => setBackFile(null)} title="Remove"><Icon.X /></button>
+                      </div>
+                    ) : (
+                      <label className="vi-upload-btn">
+                        Choose File
+                        <input type="file" accept="image/*" onChange={(e) => setBackFile(e.target.files[0] || null)} hidden />
+                      </label>
+                    )}
+                    <span className="vi-upload-optional">Optional for passports</span>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {step === 2 && (
+              <>
+                <h3 className="vi-card-title">Take a Selfie</h3>
+                <p className="vi-card-desc">We'll compare your selfie to the photo on your ID to confirm your identity.</p>
+                <div className="vi-selfie-area">
+                  <div className="vi-selfie-frame">
+                    {cameraActive ? (
+                      <>
+                        <video ref={videoRef} autoPlay playsInline muted className="vi-selfie-preview" />
+                        <div className="vi-selfie-face-guide" />
+                      </>
+                    ) : selfieFile ? (
+                      <img src={URL.createObjectURL(selfieFile)} alt="Selfie preview" className="vi-selfie-preview" />
+                    ) : (
+                      <>
+                        <span className="vi-selfie-icon"><Icon.User /></span>
+                        <span className="vi-selfie-hint">Position your face in the frame</span>
+                      </>
+                    )}
+                  </div>
+                  <canvas ref={canvasRef} hidden />
+                  {cameraError && <p className="vi-camera-error">{cameraError}</p>}
+                  <div className="vi-selfie-actions">
+                    {cameraActive ? (
+                      <>
+                        <button type="button" className="vi-selfie-btn vi-selfie-btn-capture" onClick={capturePhoto}>
+                          Take Photo
+                        </button>
+                        <button type="button" className="vi-btn-outline vi-selfie-btn-cancel" onClick={stopCamera}>
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <button type="button" className="vi-selfie-btn" onClick={startCamera}>
+                        {selfieFile ? 'Retake Selfie' : 'Open Camera'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="vi-tips">
+                  <h4>Tips for a good selfie</h4>
+                  <ul>
+                    <li>Ensure good lighting on your face</li>
+                    <li>Remove hats, glasses, or face coverings</li>
+                    <li>Look directly at the camera</li>
+                    <li>Keep a neutral expression</li>
+                  </ul>
+                </div>
+              </>
+            )}
+
+            {step === 3 && (
+              <>
+                <h3 className="vi-card-title">Review & Submit</h3>
+                <p className="vi-card-desc">Please review your information before submitting.</p>
+                <div className="vi-review-items">
+                  <div className="vi-review-item">
+                    <span className="vi-review-label">Document Type</span>
+                    <span className="vi-review-value">{ID_TYPE_LABELS[selectedType]}</span>
+                  </div>
+                  <div className="vi-review-item">
+                    <span className="vi-review-label">Front Image</span>
+                    <span className="vi-review-value vi-review-check">{frontFile ? frontFile.name : '—'}</span>
+                  </div>
+                  <div className="vi-review-item">
+                    <span className="vi-review-label">Back Image</span>
+                    <span className="vi-review-value">{backFile ? backFile.name : 'Not provided'}</span>
+                  </div>
+                  <div className="vi-review-item">
+                    <span className="vi-review-label">Selfie</span>
+                    <span className="vi-review-value vi-review-check">{selfieFile ? 'Captured' : '—'}</span>
+                  </div>
+                </div>
+                <div className="vi-consent">
+                  <p>By submitting, you consent to Digital ID processing your biometric data and identity documents for verification purposes in accordance with our Privacy Policy.</p>
+                </div>
+                {submitError && <p className="vi-submit-error">{submitError}</p>}
+              </>
+            )}
+          </>
         )}
       </div>
+
+      {verification?.status === 'none' && !isAnalyzing && (
+        <div className="vi-actions">
+          {step > 0 && (
+            <button type="button" className="vi-btn-outline" onClick={handleBack} disabled={submitting}>Back</button>
+          )}
+          {step < STEPS.length - 1 ? (
+            <button type="button" className="vi-btn-primary" onClick={handleNext} disabled={!canProceed()}>Continue</button>
+          ) : (
+            <button type="button" className="vi-btn-primary" onClick={handleSubmit} disabled={submitting || isAnalyzing}>
+              {submitting || isAnalyzing ? 'Processing…' : 'Submit Verification'}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

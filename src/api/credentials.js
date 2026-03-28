@@ -40,15 +40,28 @@ export function startCredentialVerification(credentialType, fields = {}, file = 
   });
 }
 
-export function submitCredentialDocument(credentialType, file) {
+export function submitCredentialDocument(credentialType, file, verificationEmail = null) {
   const form = new FormData();
   form.append('file', file);
+  if (verificationEmail) form.append('verificationEmail', verificationEmail);
   return request(`/api/credentials/${credentialType}/submit`, {
     method: 'POST',
     body: form,
   });
 }
 
-export function fetchCredentialById(credentialType) {
-  return request(`/api/credentials/${credentialType}`);
+export function requestCredentialEmailVerification(credentialType, email) {
+  return request(`/api/credentials/${credentialType}/request-email-verification`, {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export function verifyCredentialEmailToken(token) {
+  return request('/api/credentials/verify-email', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
