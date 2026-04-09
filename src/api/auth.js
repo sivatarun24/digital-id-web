@@ -2,8 +2,19 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080
 const TOKEN_KEY = 'auth_access_token';
 const REFRESH_TOKEN_KEY = 'auth_refresh_token';
 
-let accessToken = (typeof localStorage !== 'undefined' && localStorage.getItem(TOKEN_KEY)) || null;
-let refreshTokenValue = (typeof localStorage !== 'undefined' && localStorage.getItem(REFRESH_TOKEN_KEY)) || null;
+function getInitialToken(key) {
+  try {
+    if (typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function') {
+      return localStorage.getItem(key);
+    }
+  } catch {
+    // Ignore
+  }
+  return null;
+}
+
+let accessToken = getInitialToken(TOKEN_KEY);
+let refreshTokenValue = getInitialToken(REFRESH_TOKEN_KEY);
 let isRefreshing = false;
 let refreshSubscribers = [];
 

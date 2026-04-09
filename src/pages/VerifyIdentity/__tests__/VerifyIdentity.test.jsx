@@ -101,10 +101,10 @@ describe('VerifyIdentity Page', () => {
       expect(screen.getByText('IAL2 — Strong Identity')).toBeInTheDocument();
     });
 
-    it('shows the document type used', async () => {
+    it('shows successful biometric match status', async () => {
       renderAuthenticated(<VerifyIdentity />);
       await screen.findByText('Identity Verified');
-      expect(screen.getByText("Driver's License")).toBeInTheDocument();
+      expect(screen.getByText('Confirmed ✅')).toBeInTheDocument();
     });
   });
 
@@ -285,7 +285,7 @@ describe('VerifyIdentity Page', () => {
       await user.click(screen.getByRole('button', { name: /submit verification/i }));
 
       await waitFor(() => expect(mockSubmitVerification).toHaveBeenCalledOnce());
-      expect(await screen.findByRole('heading', { name: /under review/i })).toBeInTheDocument();
+      expect(await screen.findByRole('heading', { name: /analyzing your identity/i })).toBeInTheDocument();
     });
   });
 });
