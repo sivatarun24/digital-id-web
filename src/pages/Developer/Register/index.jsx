@@ -66,7 +66,7 @@ export default function DeveloperRegister() {
   };
 
   if (result) {
-    const authorizeUrl = `/authorize?app_id=${result.appId}&credential_type=student`;
+
     return (
       <div className="dev-page">
         <div className="dev-page-header">

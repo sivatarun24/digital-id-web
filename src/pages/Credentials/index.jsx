@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchCredentials, startCredentialVerification, submitCredentialDocument, requestCredentialEmailVerification } from '../../api/credentials';
+import { fetchCredentials, startCredentialVerification, submitCredentialDocument } from '../../api/credentials';
 import { openDocumentFile } from '../../api/documents';
 import { fetchVerificationStatus } from '../../api/verifyIdentity';
 import './Credentials.css';
@@ -167,7 +167,7 @@ function CredentialWizard({ cred, onCancel, onSubmitted }) {
   const [polledStatus, setPolledStatus] = useState('PENDING');
   const [emailConfirmed, setEmailConfirmed] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [, setIsAnalyzing] = useState(false);
   const dropRef = useRef(null);
 
   const handleRestart = () => {

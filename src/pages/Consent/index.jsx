@@ -9,15 +9,14 @@ export default function ConsentPage() {
   const appId         = params.get('app_id');
   const credentialType = params.get('credential_type');
 
+  const isInvalid = !appId || !credentialType;
   const [info, setInfo]       = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isInvalid);
   const [approving, setApproving] = useState(false);
-  const [error, setError]     = useState('');
+  const [error, setError]     = useState(isInvalid ? 'Invalid consent request — missing app_id or credential_type.' : '');
 
   useEffect(() => {
-    if (!appId || !credentialType) {
-      setError('Invalid consent request — missing app_id or credential_type.');
-      setLoading(false);
+    if (isInvalid) {
       return;
     }
     fetchConsentInfo(appId, credentialType)
