@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { fetchActivity } from '../../api/activity';
 import './Activity.css';
 
@@ -82,41 +82,54 @@ function parseUserAgent(ua) {
   return 'Browser';
 }
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 export default function Activity() {
   const [activity, setActivity] = useState([]);
   const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
-  const [offset, setOffset] = useState(0);
   const [error, setError] = useState(null);
 
-  const load = useCallback((currentFilter, reset = true) => {
-    if (reset) setLoading(true);
-    const off = reset ? 0 : offset;
-    fetchActivity({ type: currentFilter, limit: PAGE_SIZE, offset: off })
+  useEffect(() => {
+    let cancelled = false;
+    fetchActivity({ type: filter, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE })
       .then(({ activity: list, hasMore: more }) => {
-        setActivity((prev) => reset ? list : [...prev, ...list]);
+        if (cancelled) return;
+        setActivity(list);
         setHasMore(!!more);
-        setOffset(off + list.length);
         setError(null);
         setLoading(false);
-        setLoadingMore(false);
       })
-      .catch((err) => { setError(err.message); setLoading(false); setLoadingMore(false); });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter]);
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err.message);
+        setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [filter, page]);
 
-  useEffect(() => {
-    setOffset(0);
-    load(filter, true);
-  }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  function handleFilterChange(id) { setError(null); setFilter(id); }
-  function handleRetry() { setLoading(true); setError(null); load(filter, true); }
-  function handleLoadMore() { setLoadingMore(true); load(filter, false); }
+  function handleFilterChange(id) {
+    if (id === filter) return;
+    setLoading(true);
+    setError(null);
+    setSearch('');
+    setPage(1);
+    setFilter(id);
+  }
+  function handleRetry() {
+    setLoading(true);
+    setError(null);
+    fetchActivity({ type: filter, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE })
+      .then(({ activity: list, hasMore: more }) => {
+        setActivity(list);
+        setHasMore(!!more);
+        setLoading(false);
+      })
+      .catch((err) => { setError(err.message); setLoading(false); });
+  }
 
   return (
     <div className="act-page">
@@ -125,6 +138,24 @@ export default function Activity() {
         <p className="act-subtitle">
           Track sign-ins, verification events, and security changes across your account.
         </p>
+      </div>
+
+      <div className="act-search-row">
+        <div className="act-search-wrap">
+          <svg className="act-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            type="text"
+            className="act-search"
+            placeholder="Search activity…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {search && (
+            <button type="button" className="act-search-clear" onClick={() => setSearch('')}>×</button>
+          )}
+        </div>
       </div>
 
       <div className="act-filters">
@@ -157,13 +188,19 @@ export default function Activity() {
       {!loading && !error && (
         <>
           <div className="act-timeline">
-            {activity.length === 0 ? (
+            {(search.trim() ? activity.filter(item =>
+                item.title?.toLowerCase().includes(search.toLowerCase()) ||
+                item.desc?.toLowerCase().includes(search.toLowerCase())
+              ) : activity).length === 0 ? (
               <div className="act-empty">
                 <span className="act-empty-icon"><Icon.Inbox /></span>
                 <p>No activity found for this filter.</p>
               </div>
             ) : (
-              activity.map((item) => {
+              (search.trim() ? activity.filter(item =>
+                item.title?.toLowerCase().includes(search.toLowerCase()) ||
+                item.desc?.toLowerCase().includes(search.toLowerCase())
+              ) : activity).map((item) => {
                 const ItemIcon = TYPE_ICON[item.type] || Icon.Lock;
                 return (
                   <div key={item.id} className="act-item">
@@ -189,16 +226,25 @@ export default function Activity() {
               })
             )}
           </div>
-          {hasMore && (
+          <div className="act-pagination">
             <button
               type="button"
-              className="act-load-more"
-              onClick={handleLoadMore}
-              disabled={loadingMore}
+              className="act-page-btn"
+              onClick={() => setPage((p) => p - 1)}
+              disabled={page === 1}
             >
-              {loadingMore ? 'Loading…' : 'Load more'}
+              ← Prev
             </button>
-          )}
+            <span className="act-page-label">Page {page}</span>
+            <button
+              type="button"
+              className="act-page-btn"
+              onClick={() => setPage((p) => p + 1)}
+              disabled={!hasMore || search.trim().length > 0}
+            >
+              Next →
+            </button>
+          </div>
         </>
       )}
     </div>

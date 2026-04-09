@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Settings.css';
 import {
@@ -8,6 +8,7 @@ import {
   twoFactorSetup,
   twoFactorEnable,
   twoFactorDisable,
+  updateProfile,
 } from '../../api/auth';
 import useAuth from '../../hooks/useAuth';
 import { validateChangePassword, PASSWORD_HINT, getPasswordRuleStatus } from '../../utils/passwordValidation';
@@ -100,6 +101,11 @@ export default function Settings() {
   const [twoFACode, setTwoFACode] = useState('');
   const [twoFALoading, setTwoFALoading] = useState(false);
   const [twoFAError, setTwoFAError] = useState('');
+
+  const [marketingOptIn, setMarketingOptIn] = useState(user?.marketingOptIn ?? false);
+  const [marketingLoading, setMarketingLoading] = useState(false);
+
+  useEffect(() => { setMarketingOptIn(user?.marketingOptIn ?? false); }, [user]);
 
 
   async function handleDeleteAccount(e) {
@@ -241,6 +247,19 @@ export default function Settings() {
     setShow2FAModal(true);
   }
 
+  async function handleMarketingToggle() {
+    setMarketingLoading(true);
+    const next = !marketingOptIn;
+    try {
+      await updateProfile({ marketingOptIn: next });
+      setMarketingOptIn(next);
+    } catch {
+      // revert on failure
+    } finally {
+      setMarketingLoading(false);
+    }
+  }
+
   async function handleDisable2FA(e) {
     e.preventDefault();
     if (!twoFACode.trim()) { setTwoFAError('Enter the 6-digit code from your authenticator app.'); return; }
@@ -338,7 +357,7 @@ export default function Settings() {
                 <span className="settings-hint">Manage your verified identity documents</span>
               </div>
             </div>
-            <button type="button" className="settings-action">Manage</button>
+            <button type="button" className="settings-action" onClick={() => navigate('/verify-identity')}>Manage</button>
           </div>
 
           <div className="settings-item">
@@ -349,7 +368,7 @@ export default function Settings() {
                 <span className="settings-hint">Military, student, first responder, and more</span>
               </div>
             </div>
-            <button type="button" className="settings-action">Verify</button>
+            <button type="button" className="settings-action" onClick={() => navigate('/credentials')}>Verify</button>
           </div>
         </div>
       </div>
@@ -376,7 +395,7 @@ export default function Settings() {
                 <span className="settings-hint">Control what information connected services can see</span>
               </div>
             </div>
-            <button type="button" className="settings-action">Manage</button>
+            <button type="button" className="settings-action" onClick={() => navigate('/data-privacy')}>Manage</button>
           </div>
 
           <div className="settings-item">
@@ -387,7 +406,26 @@ export default function Settings() {
                 <span className="settings-hint">Manage services linked to your Digital ID</span>
               </div>
             </div>
-            <span className="settings-badge">0 services</span>
+            <button type="button" className="settings-action" onClick={() => navigate('/services')}>Manage</button>
+          </div>
+
+          <div className="settings-item">
+            <div className="settings-item-header">
+              <span className="settings-icon"><Icon.Bell /></span>
+              <div>
+                <span className="settings-label">Marketing Emails</span>
+                <span className="settings-hint">Receive updates, offers, and promotions from Digital ID</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              className={'settings-toggle' + (marketingOptIn ? ' on' : '')}
+              onClick={handleMarketingToggle}
+              disabled={marketingLoading}
+              aria-label={marketingOptIn ? 'Disable marketing emails' : 'Enable marketing emails'}
+            >
+              <span className="settings-toggle-knob" />
+            </button>
           </div>
         </div>
       </div>

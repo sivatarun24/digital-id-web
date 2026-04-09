@@ -1,6 +1,88 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchServices, connectService, disconnectService } from '../../api/services';
 import './ConnectedServices.css';
+
+/* ── Connect Authorization Popup ────────────────────────────────── */
+function ConnectPopup({ svc, onAuthorize, onCancel }) {
+  const [stage, setStage] = useState('prompt'); // prompt | connecting | done
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    return () => clearTimeout(timerRef.current);
+  }, []);
+
+  const handleAuthorize = async () => {
+    setStage('connecting');
+    try {
+      await onAuthorize();
+      setStage('done');
+      timerRef.current = setTimeout(onCancel, 1800);
+    } catch {
+      setStage('prompt');
+    }
+  };
+
+  const SvcIconComp = SERVICE_ICON[svc.id] || Icon.Building;
+
+  return (
+    <div className="cs-popup-backdrop" onClick={stage === 'prompt' ? onCancel : undefined}>
+      <div className="cs-popup" onClick={(e) => e.stopPropagation()}>
+        {stage === 'done' ? (
+          <div className="cs-popup-done">
+            <div className="cs-popup-done-check">✓</div>
+            <p className="cs-popup-done-title">Connected!</p>
+            <p className="cs-popup-done-sub">{svc.name} is now linked to your Digital ID</p>
+          </div>
+        ) : (
+          <>
+            <p className="cs-popup-title">Authorize connection</p>
+            <p className="cs-popup-subtitle">
+              {svc.name} is requesting access to your Digital ID profile
+            </p>
+
+            <div className="cs-popup-logos">
+              <div className={'cs-popup-logo digital-id' + (stage === 'connecting' ? ' cs-popup-logo-pulse' : '')}>
+                <span className="cs-popup-logo-letter">D</span>
+              </div>
+              <div className="cs-popup-connector">
+                {stage === 'connecting' ? (
+                  <div className="cs-popup-dots">
+                    <span /><span /><span />
+                  </div>
+                ) : (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                )}
+              </div>
+              <div className={'cs-popup-logo service' + (stage === 'connecting' ? ' cs-popup-logo-pulse' : '')}>
+                <SvcIconComp />
+              </div>
+            </div>
+
+            <div className="cs-popup-perms">
+              <p className="cs-popup-perms-label">This will grant access to:</p>
+              <ul className="cs-popup-perms-list">
+                <li>Your verified identity status</li>
+                <li>Your name and contact info</li>
+                <li>Connection confirmation</li>
+              </ul>
+            </div>
+
+            <div className="cs-popup-actions">
+              <button type="button" className="cs-popup-cancel" onClick={onCancel} disabled={stage === 'connecting'}>
+                Cancel
+              </button>
+              <button type="button" className="cs-popup-authorize" onClick={handleAuthorize} disabled={stage === 'connecting'}>
+                {stage === 'connecting' ? 'Connecting…' : 'Authorize'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const Icon = {
   Building:  () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14" /><path d="M9 21v-4h6v4" /></svg>),
@@ -27,6 +109,7 @@ export default function ConnectedServices() {
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(null);
   const [busy, setBusy]         = useState(null); // slug of service being toggled
+  const [connectingService, setConnectingService] = useState(null); // service being authorized via popup
 
   const load = useCallback(() => {
     setLoading(true);
@@ -46,20 +129,21 @@ export default function ConnectedServices() {
     : filter === 'government' ? services.filter((s) => s.category === 'Government')
     : services.filter((s) => s.category === 'Commercial');
 
-  async function handleToggle(svc) {
+  function handleToggle(svc) {
+    if (!svc.connected) {
+      // Show authorization popup for connect
+      setConnectingService(svc);
+    } else {
+      // Disconnect directly (no popup needed)
+      handleDisconnect(svc);
+    }
+  }
+
+  async function handleDisconnect(svc) {
     setBusy(svc.id);
     try {
-      if (svc.connected) {
-        await disconnectService(svc.id);
-        setServices((prev) => prev.map((s) => s.id === svc.id ? { ...s, connected: false } : s));
-      } else {
-        await connectService(svc.id);
-        setServices((prev) => prev.map((s) =>
-          s.id === svc.id
-            ? { ...s, connected: true, connectedAt: new Date().toISOString().split('T')[0], lastUsed: new Date().toISOString().split('T')[0] }
-            : s
-        ));
-      }
+      await disconnectService(svc.id);
+      setServices((prev) => prev.map((s) => s.id === svc.id ? { ...s, connected: false } : s));
     } catch (err) {
       alert(err.message);
     } finally {
@@ -67,8 +151,26 @@ export default function ConnectedServices() {
     }
   }
 
+  async function handleAuthorizeConnect() {
+    if (!connectingService) return;
+    await connectService(connectingService.id);
+    const today = new Date().toISOString().split('T')[0];
+    setServices((prev) => prev.map((s) =>
+      s.id === connectingService.id
+        ? { ...s, connected: true, connectedAt: today, lastUsed: today }
+        : s
+    ));
+  }
+
   return (
     <div className="cs-page">
+      {connectingService && (
+        <ConnectPopup
+          svc={connectingService}
+          onAuthorize={handleAuthorizeConnect}
+          onCancel={() => setConnectingService(null)}
+        />
+      )}
       <div className="cs-header">
         <div>
           <h2>Connected Services</h2>

@@ -167,7 +167,7 @@ const STATUS_LABEL = { verified: '✓ Verified', pending: '○ Pending', rejecte
 const SIDE_LABELS = ['Front', 'Back', 'Page 1', 'Page 2', 'Other'];
 
 /* ── Upload modal ─────────────────────────────────────────── */
-function UploadModal({ onClose, onSubmit }) {
+function UploadModal({ onClose, onSubmit, onSuccess }) {
   const [selectedDocType, setSelectedDocType] = useState(null);
   const [files, setFiles]         = useState([]);
   const [issuer, setIssuer]       = useState('');
@@ -226,7 +226,7 @@ function UploadModal({ onClose, onSubmit }) {
           file: files[i].file,
         });
       }
-      onClose();
+      onSuccess ? onSuccess() : onClose();
     } catch (err) {
       setSubmitError(err.message);
     } finally {
@@ -483,6 +483,11 @@ export default function Documents() {
     return newDoc;
   };
 
+  const handleUploadSuccess = () => {
+    setShowUpload(false);
+    loadDocuments();
+  };
+
   const handleReplace = async (id, file) => {
     setReplacingId(id);
     try {
@@ -544,6 +549,7 @@ export default function Documents() {
         <UploadModal
           onClose={() => setShowUpload(false)}
           onSubmit={handleUploadSubmit}
+          onSuccess={handleUploadSuccess}
         />
       )}
 

@@ -193,16 +193,16 @@ function formatTime(isoString) {
   return new Date(isoString).toLocaleDateString();
 }
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount]     = useState(0);
   const [filter, setFilter]               = useState('all');
+  const [search, setSearch]               = useState('');
+  const [page, setPage]                   = useState(1);
   const [loading, setLoading]             = useState(true);
-  const [loadingMore, setLoadingMore]     = useState(false);
   const [hasMore, setHasMore]             = useState(false);
-  const [offset, setOffset]               = useState(0);
   const [error, setError]                 = useState(null);
   const [infoRequests, setInfoRequests]   = useState([]);
   const [respondTarget, setRespondTarget] = useState(null);
@@ -213,56 +213,45 @@ export default function Notifications() {
   }, []);
 
   useEffect(() => {
-    fetchNotifications({ type: filter, limit: PAGE_SIZE, offset: 0 })
+    let cancelled = false;
+    fetchNotifications({ type: filter, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE })
       .then(({ notifications: list, unreadCount: count, hasMore: more }) => {
+        if (cancelled) return;
         setNotifications(list);
         setUnreadCount(count);
         setHasMore(!!more);
-        setOffset(list.length);
         setLoading(false);
-        setLoadingMore(false);
       })
       .catch((err) => {
+        if (cancelled) return;
         setError(err.message);
         setLoading(false);
-        setLoadingMore(false);
       });
-  }, [filter, requestKey]);
+    return () => { cancelled = true; };
+  }, [filter, page, requestKey]);
 
   useEffect(() => { refreshInfoRequests(); }, [refreshInfoRequests]);
 
-  function handleLoadMore() {
-    setLoadingMore(true);
-    fetchNotifications({ type: filter, limit: PAGE_SIZE, offset })
-      .then(({ notifications: list, unreadCount: count, hasMore: more }) => {
-        setNotifications((prev) => [...prev, ...list]);
-        setUnreadCount(count);
-        setHasMore(!!more);
-        setOffset(offset + list.length);
-        setLoadingMore(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoadingMore(false);
-      });
-  }
-
   function handleFilterChange(nextFilter) {
     if (nextFilter === filter) return;
-    setError(null);
     setLoading(true);
+    setError(null);
+    setSearch('');
+    setPage(1);
     setFilter(nextFilter);
   }
 
   function handleRetry() {
-    setError(null);
     setLoading(true);
+    setError(null);
     setRequestKey((key) => key + 1);
   }
 
-  const filtered =
-    filter === 'unread' ? notifications.filter((n) => !n.read)
-    : notifications;
+  const filtered = notifications.filter((n) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return n.title?.toLowerCase().includes(q) || n.message?.toLowerCase().includes(q);
+  });
 
   async function handleToggleRead(id) {
     try {
@@ -354,6 +343,24 @@ export default function Notifications() {
         </div>
       )}
 
+      <div className="notif-search-row">
+        <div className="notif-search-wrap">
+          <svg className="notif-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            type="text"
+            className="notif-search"
+            placeholder="Search notifications…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {search && (
+            <button type="button" className="notif-search-clear" onClick={() => setSearch('')}>×</button>
+          )}
+        </div>
+      </div>
+
       <div className="notif-filters">
         {[
           { id: 'all',          label: 'All' },
@@ -432,16 +439,25 @@ export default function Notifications() {
                 );
               })}
             </div>
-            {hasMore && filter !== 'unread' && (
+            <div className="notif-pagination">
               <button
                 type="button"
-                className="notif-load-more"
-                onClick={handleLoadMore}
-                disabled={loadingMore}
+                className="notif-page-btn"
+                onClick={() => setPage((p) => p - 1)}
+                disabled={page === 1}
               >
-                {loadingMore ? 'Loading…' : 'Load more'}
+                ← Prev
               </button>
-            )}
+              <span className="notif-page-label">Page {page}</span>
+              <button
+                type="button"
+                className="notif-page-btn"
+                onClick={() => setPage((p) => p + 1)}
+                disabled={!hasMore || search.trim().length > 0}
+              >
+                Next →
+              </button>
+            </div>
           </>
         )
       )}

@@ -171,10 +171,10 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  padding: 24px 22px 20px;
+  padding: 20px 18px 16px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   position: relative;
   overflow: hidden;
   transition: box-shadow var(--t), transform var(--t-slow);
@@ -213,11 +213,12 @@
 
 .home-stat-value {
   font-family: var(--font-display);
-  font-size: 2rem;
+  font-size: 1.65rem;
   font-weight: 700;
-  letter-spacing: -0.05em;
-  line-height: 1.05;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
   color: var(--text);
+  word-break: break-word;
 }
 
 .home-stat-card.success .home-stat-value { color: #059669; }
@@ -229,22 +230,24 @@
 .home-stat-card.idle .home-stat-value { color: #64748b; }
 
 .home-stat-label {
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: var(--text);
-  margin-top: 8px;
-  letter-spacing: -0.01em;
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: var(--text-3);
+  margin-top: 0;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 .home-stat-sub {
-  font-size: 0.8125rem;
+  font-size: 0.775rem;
   color: var(--text-3);
   letter-spacing: -0.01em;
+  margin-top: 2px;
 }
 
 .home-body {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   gap: 22px;
   align-items: start;
 }
@@ -404,39 +407,115 @@
   margin-left: 6px;
 }
 
-.home-verif-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-}
-
-.home-verif-chip {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  padding: 13px 14px;
+.home-verif-tags {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  transition: all var(--t);
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-.home-verif-chip:hover {
+.home-verif-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-2);
+  letter-spacing: -0.01em;
+  transition: all var(--t);
+  cursor: default;
+}
+
+.home-verif-tag:hover {
   background: var(--accent-bg);
   border-color: var(--accent-border);
-  box-shadow: var(--shadow-xs);
+  color: var(--accent);
 }
 
-.home-verif-name {
+/* ── Connected Services ── */
+
+.home-services-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.home-service-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--r);
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.home-service-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.home-service-name {
+  flex: 1;
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--text);
   letter-spacing: -0.01em;
 }
 
-.home-verif-desc {
-  font-size: 0.78125rem;
-  color: var(--text-3);
+.home-service-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  padding: 2px 8px;
+  border-radius: var(--r-full);
+  letter-spacing: 0.01em;
+}
+
+/* ── Compact Support Buttons ── */
+
+.home-support-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.home-support-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 0.845rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: all var(--t);
+  width: 100%;
+  text-align: left;
+}
+
+.home-support-btn svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.home-support-btn:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent);
+  box-shadow: var(--shadow-xs);
 }
 
 .home-id-card {
@@ -627,8 +706,7 @@
   }
 
   .home-favorite-grid,
-  .home-stats-home,
-  .home-verif-grid {
+  .home-stats-home {
     grid-template-columns: 1fr;
   }
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import { fetchHome } from '../../api/home';
@@ -6,6 +6,7 @@ import { sendToAdmin, sendToInstAdmin, getMyMessages } from '../../api/messages'
 import { getMyInfoRequests } from '../../api/infoRequests';
 import { fetchNotifications } from '../../api/notifications';
 import { fetchActivity } from '../../api/activity';
+import { fetchServices } from '../../api/services';
 import './Home.css';
 
 const FAVORITE_CARDS = [
@@ -137,6 +138,7 @@ export default function Home() {
   const [notifications, setNotifications] = useState([]);
   const [activityFeed, setActivityFeed] = useState([]);
   const [myMessages, setMyMessages] = useState([]);
+  const [connectedServices, setConnectedServices] = useState([]);
 
   useEffect(() => {
     fetchHome().then(setStats).catch(() => {});
@@ -155,6 +157,10 @@ export default function Home() {
       setActivityFeed(items);
     }).catch(() => {});
     getMyMessages().then(data => setMyMessages(Array.isArray(data) ? data : [])).catch(() => {});
+    fetchServices().then(data => {
+      const list = data?.services ?? data ?? [];
+      setConnectedServices(Array.isArray(list) ? list.filter(s => s.connected) : []);
+    }).catch(() => {});
   }, []);
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -163,10 +169,6 @@ export default function Home() {
   const recentActivity = activityFeed.length > 0 ? activityFeed : (stats?.recentActivity ?? []);
   const unreadNotifications = stats?.unreadNotifications ?? notifications.filter((n) => !n.read).length;
   const pendingVerifications = stats?.pendingVerifications ?? 0;
-  const latestNotifications = useMemo(
-    () => (stats?.latestNotifications?.length ? stats.latestNotifications : notifications).slice(0, 3),
-    [notifications, stats]
-  );
   const lastSupportContact = myMessages[0] ?? null;
   const latestActivity = recentActivity[0] ?? null;
   const identityStatusText = identityVerified
@@ -277,49 +279,32 @@ export default function Home() {
           </section>
 
           <section className="home-section">
-            <div className="home-section-header">
-              <h2 className="home-section-heading home-section-heading-inline">Notifications Snapshot</h2>
-              <Link to="/notifications" className="home-section-link">View all</Link>
-            </div>
-            <div className="home-activity-list">
-              {latestNotifications.length === 0 ? (
-                <p className="home-empty-copy">No notifications yet.</p>
-              ) : (
-                latestNotifications.map((item) => (
-                  <div key={item.id} className="home-activity-item">
-                    <ActivityDot type={item.type} />
-                    <div className="home-activity-body">
-                      <span className="home-activity-label">{item.title}</span>
-                      {item.message && <span className="home-activity-detail">{item.message}</span>}
-                    </div>
-                    <span className="home-activity-time">{timeAgo(item.createdAt)}</span>
-                  </div>
-                ))
-              )}
+            <h2 className="home-section-heading">Supported Verifications</h2>
+            <div className="home-verif-tags">
+              {VERIF_TYPES.map((item) => (
+                <span key={item.label} className="home-verif-tag" title={item.desc}>{item.label}</span>
+              ))}
             </div>
           </section>
 
           <section className="home-section">
             <div className="home-section-header">
-              <h2 className="home-section-heading home-section-heading-inline">Latest Activity</h2>
-              <Link to="/activity" className="home-section-link">View all</Link>
+              <h2 className="home-section-heading home-section-heading-inline">Connected Services</h2>
+              <Link to="/services" className="home-section-link">Manage</Link>
             </div>
-            <div className="home-activity-list">
-              {recentActivity.length === 0 ? (
-                <p className="home-empty-copy">No activity yet.</p>
-              ) : (
-                recentActivity.map((item, index) => (
-                  <div key={index} className="home-activity-item">
-                    <ActivityDot type={item.type} />
-                    <div className="home-activity-body">
-                      <span className="home-activity-label">{item.label}</span>
-                      {item.detail && <span className="home-activity-detail">{item.detail}</span>}
-                    </div>
-                    <span className="home-activity-time">{timeAgo(item.time || item.createdAt)}</span>
+            {connectedServices.length === 0 ? (
+              <p className="home-empty-copy">No services connected yet. <Link to="/services" className="home-section-link">Browse services →</Link></p>
+            ) : (
+              <div className="home-services-list">
+                {connectedServices.map((svc) => (
+                  <div key={svc.slug} className="home-service-row">
+                    <div className="home-service-dot" />
+                    <span className="home-service-name">{svc.name}</span>
+                    <span className="home-service-badge">Connected</span>
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
 
           <section className="home-section">
@@ -335,50 +320,6 @@ export default function Home() {
                     <path d="M5 12h14M12 5l7 7-7 7" />
                   </svg>
                 </button>
-              ))}
-            </div>
-          </section>
-
-          <section className="home-section">
-            <h2 className="home-section-heading">Contact Support</h2>
-            <div className="home-actions">
-              <button type="button" className="home-action" onClick={() => setMsgTarget('admin')}>
-                <div className="home-action-text">
-                  <span className="home-action-title">Message Admin</span>
-                  <span className="home-action-desc">Send a message to platform support</span>
-                </div>
-                <svg className="home-action-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" />
-                </svg>
-              </button>
-              <button type="button" className="home-action" onClick={() => setMsgTarget('inst')}>
-                <div className="home-action-text">
-                  <span className="home-action-title">Message Institution</span>
-                  <span className="home-action-desc">Contact your institution admin</span>
-                </div>
-                <svg className="home-action-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" />
-                </svg>
-              </button>
-            </div>
-            <div className="home-support-meta">
-              Last contact:
-              <span>
-                {lastSupportContact
-                  ? `${lastSupportContact.subject || 'No subject'} • ${timeAgo(lastSupportContact.sentAt)}`
-                  : ' Never'}
-              </span>
-            </div>
-          </section>
-
-          <section className="home-section">
-            <h2 className="home-section-heading">Supported Verifications</h2>
-            <div className="home-verif-grid">
-              {VERIF_TYPES.map((item) => (
-                <div key={item.label} className="home-verif-chip">
-                  <span className="home-verif-name">{item.label}</span>
-                  <span className="home-verif-desc">{item.desc}</span>
-                </div>
               ))}
             </div>
           </section>
@@ -436,6 +377,29 @@ export default function Home() {
                 <span className="home-id-card-value">{unreadNotifications}</span>
               </div>
             </div>
+          </section>
+
+          <section className="home-section">
+            <h2 className="home-section-heading">Contact Support</h2>
+            <div className="home-support-buttons">
+              <button type="button" className="home-support-btn" onClick={() => setMsgTarget('admin')}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" />
+                </svg>
+                Message Admin
+              </button>
+              <button type="button" className="home-support-btn" onClick={() => setMsgTarget('inst')}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" />
+                </svg>
+                Message Institution
+              </button>
+            </div>
+            {lastSupportContact && (
+              <p className="home-support-meta">
+                Last: <span>{lastSupportContact.subject || 'No subject'} · {timeAgo(lastSupportContact.sentAt)}</span>
+              </p>
+            )}
           </section>
         </div>
       </div>
