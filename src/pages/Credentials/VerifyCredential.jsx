@@ -13,15 +13,11 @@ export default function VerifyCredential() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token');
-  const [status, setStatus] = useState('verifying'); // verifying, success, error
-  const [error, setError] = useState(null);
+  const [status, setStatus] = useState(token ? 'verifying' : 'error');
+  const [error, setError] = useState(token ? null : 'Missing verification token.');
 
   useEffect(() => {
-    if (!token) {
-      setStatus('error');
-      setError('Missing verification token.');
-      return;
-    }
+    if (!token) return;
 
     verifyCredentialEmailToken(token)
       .then(() => {

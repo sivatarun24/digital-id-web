@@ -467,13 +467,8 @@ function DocDetailModal({ doc, docType, onClose, onView, onReplace, onDelete, re
 
 function DocGroupCard({ docType, docs, onView, onReplace, onDelete, replacingId, deletingId, viewingId }) {
   const [expanded, setExpanded] = useState(false);
-<<<<<<< Updated upstream
-  const [selectedDocId, setSelectedDocId] = useState(null);
-  const label = getDocLabel(docType);
-=======
   const [detailDoc, setDetailDoc] = useState(null);
-  const label  = getDocLabel(docType);
->>>>>>> Stashed changes
+  const label = getDocLabel(docType);
   const status = groupStatus(docs);
 
   return (
@@ -929,8 +924,6 @@ function VerificationWizard({ documents, onCancel, onSubmitted, onDocumentUpload
         result.documents.forEach((doc) => onDocumentUploaded(doc));
       }
 
-<<<<<<< Updated upstream
-      const result = await submitVerification({ idType: selectedType, frontFile: resolvedFront, backFile: resolvedBack, selfieFile });
       setLocalVerification(result);
 
       // Simulated progress for UI feedback
@@ -956,9 +949,6 @@ function VerificationWizard({ documents, onCancel, onSubmitted, onDocumentUpload
         setIsAnalyzing(false);
         onSubmitted(result);
       }
-=======
-      onSubmitted(result);
->>>>>>> Stashed changes
     } catch (err) {
       setSubmitError(err.message);
       setIsAnalyzing(false);

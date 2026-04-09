@@ -136,21 +136,18 @@ export default function VerifyIdentity() {
             const statusUpdate = await fetchVerificationStatus();
             if (statusUpdate.status !== 'pending') {
               setVerification(statusUpdate);
-              setIsAnalyzing(false);
               clearInterval(pollInterval);
             }
           } catch (pollErr) {
             console.error('Error polling verification status:', pollErr);
           }
         }, 3000); // Poll every 3 seconds
-      } else {
-        setIsAnalyzing(false);
       }
     } catch (err) {
       setSubmitError(err.message);
-      setIsAnalyzing(false);
     } finally {
       setSubmitting(false);
+      setIsAnalyzing(false);
     }
   }
 
@@ -202,6 +199,12 @@ export default function VerifyIdentity() {
                 <span className="vi-detail-label">Biometric Match</span>
                 <span className="vi-detail-value vi-detail-highlight">Confirmed ✅</span>
               </div>
+              {verification.idType && (
+                <div className="vi-detail-row">
+                  <span className="vi-detail-label">Document Type</span>
+                  <span className="vi-detail-value">{ID_TYPE_LABELS[verification.idType] || verification.idType}</span>
+                </div>
+              )}
             </div>
             <button type="button" className="vi-btn-primary" style={{ marginTop: '30px', width: '100%' }} onClick={() => window.location.href = '/dashboard'}>
               Return to Dashboard

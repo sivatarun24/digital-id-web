@@ -9,22 +9,19 @@ export default function ConsentPage() {
   const appId         = params.get('app_id');
   const credentialType = params.get('credential_type');
 
+  const hasParams = !!(appId && credentialType);
   const [info, setInfo]       = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(hasParams);
   const [approving, setApproving] = useState(false);
-  const [error, setError]     = useState('');
+  const [error, setError]     = useState(hasParams ? '' : 'Invalid consent request — missing app_id or credential_type.');
 
   useEffect(() => {
-    if (!appId || !credentialType) {
-      setError('Invalid consent request — missing app_id or credential_type.');
-      setLoading(false);
-      return;
-    }
+    if (!hasParams) return;
     fetchConsentInfo(appId, credentialType)
       .then(data => setInfo(data))
       .catch(() => setError('Could not load app information. This link may be invalid or expired.'))
       .finally(() => setLoading(false));
-  }, [appId, credentialType]);
+  }, [appId, credentialType, hasParams]);
 
   const handleApprove = async () => {
     setApproving(true);
