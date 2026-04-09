@@ -23,7 +23,7 @@ export default function ConsentPage() {
       .then(data => setInfo(data))
       .catch(() => setError('Could not load app information. This link may be invalid or expired.'))
       .finally(() => setLoading(false));
-  }, [appId, credentialType]);
+  }, [appId, credentialType, isInvalid]);
 
   const handleApprove = async () => {
     setApproving(true);

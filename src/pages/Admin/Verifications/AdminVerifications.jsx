@@ -9,7 +9,6 @@ import {
   adminReviewCredential,
   adminGetCredentialFile,
   adminDeleteCredential,
-  instAdminDeleteCredential,
 } from '../../../api/admin';
 import { adminCreateInfoRequest, adminGetInfoRequests, adminOpenResponseFile } from '../../../api/infoRequests';
 
