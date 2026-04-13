@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import useAuth from '../../hooks/useAuth';
 import { updateProfile } from '../../api/auth';
+import Skeleton from '../../components/common/Skeleton';
 import './Profile.css';
 
 const Icon = {
@@ -112,6 +113,31 @@ export default function Profile() {
         : null,
     },
   ];
+
+  if (!user) {
+    return (
+      <div className="profile-page">
+        <h2>My Identity</h2>
+        <div className="profile-card">
+          <div className="profile-card-header">
+            <Skeleton variant="circle" width={56} height={56} />
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <Skeleton width="40%" height={18} />
+              <Skeleton width="55%" height={14} />
+            </div>
+          </div>
+          <div style={{ padding: '24px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Skeleton width="30%" height={13} />
+                <Skeleton width="45%" height={13} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="profile-page">
