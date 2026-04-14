@@ -23,6 +23,7 @@ const Settings = lazy(() => import('../pages/Settings'));
 const Verification = lazy(() => import('../pages/Verification'));
 const Credentials = lazy(() => import('../pages/Credentials'));
 const ConnectedServices = lazy(() => import('../pages/ConnectedServices'));
+const DataPrivacy = lazy(() => import('../pages/DataPrivacy'));
 const Activity = lazy(() => import('../pages/Activity'));
 const Wallet = lazy(() => import('../pages/Wallet'));
 const Notifications = lazy(() => import('../pages/Notifications'));
@@ -36,6 +37,7 @@ const AdminVerifications = lazy(() => import('../pages/Admin/Verifications/Admin
 const AdminDocuments = lazy(() => import('../pages/Admin/Documents/AdminDocuments'));
 const AdminInstitutions = lazy(() => import('../pages/Admin/Institutions/AdminInstitutions'));
 const AdminInstitutionDetail = lazy(() => import('../pages/Admin/InstitutionDetail/AdminInstitutionDetail'));
+const AdminMarketing = lazy(() => import('../pages/Admin/Marketing/AdminMarketing'));
 
 // Institutional Admin pages
 const InstAdminDashboard = lazy(() => import('../pages/InstAdmin/Dashboard/InstAdminDashboard'));
@@ -117,6 +119,7 @@ export default function AppRoutes() {
       <Route path="/documents" element={<Navigate to="/verification" replace />} />
       <Route path="/credentials" element={<ProtectedRoute><LazyPage><Credentials /></LazyPage></ProtectedRoute>} />
       <Route path="/services" element={<ProtectedRoute><LazyPage><ConnectedServices /></LazyPage></ProtectedRoute>} />
+      <Route path="/data-privacy" element={<ProtectedRoute><LazyPage><DataPrivacy /></LazyPage></ProtectedRoute>} />
       <Route path="/activity" element={<ProtectedRoute><LazyPage><Activity /></LazyPage></ProtectedRoute>} />
       <Route path="/wallet" element={<ProtectedRoute><LazyPage><Wallet /></LazyPage></ProtectedRoute>} />
       <Route path="/notifications" element={<ProtectedRoute><LazyPage><Notifications /></LazyPage></ProtectedRoute>} />
@@ -129,6 +132,7 @@ export default function AppRoutes() {
       <Route path="/admin/documents" element={<AdminRoute><LazyPage><AdminDocuments /></LazyPage></AdminRoute>} />
       <Route path="/admin/institutions" element={<AdminRoute><LazyPage><AdminInstitutions /></LazyPage></AdminRoute>} />
       <Route path="/admin/institutions/:id" element={<AdminRoute><LazyPage><AdminInstitutionDetail /></LazyPage></AdminRoute>} />
+      <Route path="/admin/marketing" element={<AdminRoute><LazyPage><AdminMarketing /></LazyPage></AdminRoute>} />
 
       {/* --- Institutional Admin routes --- */}
       <Route path="/inst-admin" element={<InstAdminRoute><LazyPage><InstAdminDashboard /></LazyPage></InstAdminRoute>} />

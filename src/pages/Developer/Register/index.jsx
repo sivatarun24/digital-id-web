@@ -66,7 +66,6 @@ export default function DeveloperRegister() {
   };
 
   if (result) {
-
     return (
       <div className="dev-page">
         <div className="dev-page-header">

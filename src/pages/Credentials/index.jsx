@@ -167,7 +167,6 @@ function CredentialWizard({ cred, onCancel, onSubmitted }) {
   const [polledStatus, setPolledStatus] = useState('PENDING');
   const [emailConfirmed, setEmailConfirmed] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
-  const [, setIsAnalyzing] = useState(false);
   const dropRef = useRef(null);
 
   const handleRestart = () => {
@@ -231,8 +230,7 @@ function CredentialWizard({ cred, onCancel, onSubmitted }) {
   async function handleSubmit() {
     setSubmitting(true);
     setSubmitError(null);
-    setIsAnalyzing(true);
-    
+
     try {
       // Step 1: Start the verification with form fields
       await startCredentialVerification(cred.id, fieldValues);
@@ -247,7 +245,6 @@ function CredentialWizard({ cred, onCancel, onSubmitted }) {
     } catch (err) {
       setSubmitError(err.message);
       setSubmitting(false);
-      setIsAnalyzing(false);
     }
   }
 

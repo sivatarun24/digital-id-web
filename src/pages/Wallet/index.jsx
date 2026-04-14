@@ -206,7 +206,7 @@ export default function Wallet() {
   const [loading, setLoading] = useState(true);
   const [credDetails, setCredDetails] = useState([]);
   const [selectedCard, setSelectedCard] = useState(null);
-  const [flippedCardId, setFlippedCardId] = useState(null);
+  const [expandedCardId, setExpandedCardId] = useState(null);
 
   useEffect(() => {
     fetchWallet()
@@ -269,7 +269,7 @@ export default function Wallet() {
 
   function handleCardClick(card) {
     if (!card.clickable) return;
-    setFlippedCardId((prev) => prev === card.id ? null : card.id);
+    setExpandedCardId((prev) => prev === card.id ? null : card.id);
   }
 
   function openCardDetail(card, event) {
@@ -291,18 +291,22 @@ export default function Wallet() {
         <div className="wallet-loading"><div className="wallet-spinner" /><span>Loading wallet…</span></div>
       ) : (
         <div className="wallet-grid">
-          {allCards.map((card) => (
-            <div
-              key={card.id}
-              className={'wallet-card' + (card.active ? '' : ' inactive') + (card.clickable ? ' clickable' : '') + (flippedCardId === card.id ? ' flipped' : '')}
-              onClick={() => handleCardClick(card)}
-              title={card.clickable ? 'Click to view details' : undefined}
-            >
-              <div className="wallet-card-inner">
-                <div className="wallet-card-face wallet-card-front" style={{ background: card.gradient }}>
+          {allCards.map((card) => {
+            const isExpanded = expandedCardId === card.id;
+            return (
+              <div key={card.id} className="wallet-card-wrap">
+                <div
+                  className={'wallet-card-face' + (card.active ? '' : ' inactive') + (card.clickable ? ' clickable' : '')}
+                  style={{ background: card.gradient }}
+                  onClick={() => handleCardClick(card)}
+                  title={card.clickable ? 'Click to expand details' : undefined}
+                >
                   <div className="wallet-card-header">
                     <span className="wallet-card-logo"><card.CardIcon /></span>
                     <span className="wallet-card-type">{card.type}</span>
+                    {card.clickable && (
+                      <span className="wallet-card-expand-hint">{isExpanded ? '↑' : '↓'}</span>
+                    )}
                   </div>
                   {card.id === 'digital_id' && (
                     <div className="wallet-card-avatar">{initials}</div>
@@ -332,28 +336,34 @@ export default function Wallet() {
                   )}
                 </div>
 
-                <div className="wallet-card-face wallet-card-back" style={{ background: card.gradient }}>
-                  <div className="wallet-card-header">
-                    <span className="wallet-card-logo"><card.CardIcon /></span>
-                    <span className="wallet-card-type">Credential Snapshot</span>
-                  </div>
-                  <div className="wallet-card-back-rows">
-                    {(card.detailRows?.length ? card.detailRows : [{ label: 'Status', value: 'No extra details yet' }]).map((row) => (
-                      <div key={row.label} className="wallet-card-back-row">
-                        <span className="wallet-card-back-label">{row.label}</span>
-                        <span className="wallet-card-back-value">{row.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                  {card.clickable && (
-                    <button type="button" className="wallet-card-open-btn" onClick={(e) => openCardDetail(card, e)}>
-                      Zoom In
+                {card.clickable && (
+                  <div className={'wallet-card-panel' + (isExpanded ? ' open' : '')}>
+                    <div className="wallet-card-panel-rows">
+                      {(card.detailRows?.length
+                        ? card.detailRows
+                        : [{ label: 'Status', value: 'No details yet' }]
+                      ).map((row) => (
+                        <div key={row.label} className="wallet-panel-row">
+                          <span className="wallet-panel-label">{row.label}</span>
+                          <span className="wallet-panel-value">{row.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      className="wallet-panel-detail-btn"
+                      onClick={(e) => openCardDetail(card, e)}
+                    >
+                      View full details
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 12h14M12 5l7 7-7 7" />
+                      </svg>
                     </button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

@@ -355,11 +355,119 @@ function UploadModal({
   );
 }
 
+// ── Doc Detail Modal ──────────────────────────────────────────────────────────
+
+function DocDetailModal({ doc, docType, onClose, onView, onReplace, onDelete, replacingId, deletingId, viewingId }) {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    function handleKey(e) { if (e.key === 'Escape') onClose(); }
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [onClose]);
+
+  const typeFields = DOC_TYPE_FIELDS[docType] ?? { issuerLabel: 'Issuer', showExpiry: true, expiryLabel: 'Expiry date' };
+
+  return (
+    <div className="vf-modal-backdrop" onClick={onClose}>
+      <div className="vf-doc-detail-modal" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="vf-doc-detail-modal-header">
+          <div className="vf-doc-detail-modal-title-row">
+            <span className="vf-doc-detail-modal-icon">{getDocIcon(docType)()}</span>
+            <div>
+              <h3 className="vf-doc-detail-modal-title">{getDocLabel(docType)}</h3>
+              <span className={'vf-doc-detail-modal-status vf-doc-status ' + doc.status}>
+                {STATUS_LABEL[doc.status] || doc.status}
+              </span>
+            </div>
+          </div>
+          <button type="button" className="vf-modal-close" onClick={onClose} aria-label="Close"><Icon.X /></button>
+        </div>
+
+        {/* Body */}
+        <div className="vf-doc-detail-modal-body">
+          {/* File info */}
+          <div className="vf-doc-detail-section">
+            <div className="vf-doc-detail-section-label">File</div>
+            <div className="vf-doc-detail-file-row">
+              <span className="vf-doc-detail-file-icon"><Icon.File /></span>
+              <span className="vf-doc-detail-file-name">{doc.originalFileName}</span>
+            </div>
+          </div>
+
+          {/* Meta grid */}
+          <div className="vf-doc-detail-grid">
+            {typeFields.issuerLabel && (
+              <div className="vf-doc-detail-cell">
+                <span className="vf-doc-detail-cell-label">{typeFields.issuerLabel}</span>
+                <span className={'vf-doc-detail-cell-value' + (!doc.issuer ? ' empty' : '')}>
+                  {doc.issuer || '—'}
+                </span>
+              </div>
+            )}
+            {typeFields.showExpiry && (
+              <div className="vf-doc-detail-cell">
+                <span className="vf-doc-detail-cell-label">{typeFields.expiryLabel || 'Expiration / Date'}</span>
+                <span className={'vf-doc-detail-cell-value' + (!doc.expiresAt ? ' empty' : '')}>
+                  {doc.expiresAt || '—'}
+                </span>
+              </div>
+            )}
+            <div className="vf-doc-detail-cell">
+              <span className="vf-doc-detail-cell-label">Uploaded</span>
+              <span className="vf-doc-detail-cell-value">{doc.uploadedAt || '—'}</span>
+            </div>
+            <div className="vf-doc-detail-cell">
+              <span className="vf-doc-detail-cell-label">Status</span>
+              <span className={'vf-doc-detail-cell-value vf-doc-status-text ' + doc.status}>
+                {STATUS_LABEL[doc.status] || doc.status}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="vf-doc-detail-modal-footer">
+          <button
+            type="button"
+            className="vf-doc-view-btn"
+            onClick={() => { onView(doc.id); onClose(); }}
+            disabled={viewingId === doc.id}
+          >
+            {viewingId === doc.id ? 'Opening…' : 'View File'}
+          </button>
+          <label className="vf-doc-replace-btn" title="Replace with a new file">
+            {replacingId === doc.id ? 'Replacing…' : 'Replace'}
+            <input
+              type="file"
+              accept="image/*,.pdf"
+              onChange={(e) => { const f = e.target.files[0]; if (f) { onReplace(doc.id, f); onClose(); e.target.value = ''; } }}
+              disabled={replacingId === doc.id}
+              hidden
+            />
+          </label>
+          <button
+            type="button"
+            className="vf-doc-remove-btn"
+            onClick={() => { onDelete(doc.id); onClose(); }}
+            disabled={deletingId === doc.id}
+          >
+            {deletingId === doc.id ? 'Removing…' : 'Remove'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Doc Group Card (Documents section) ───────────────────────────────────────
 
 function DocGroupCard({ docType, docs, onView, onReplace, onDelete, replacingId, deletingId, viewingId }) {
   const [expanded, setExpanded] = useState(false);
-  const [selectedDocId, setSelectedDocId] = useState(null);
+  const [detailDoc, setDetailDoc] = useState(null);
   const label = getDocLabel(docType);
   const status = groupStatus(docs);
 
@@ -376,49 +484,39 @@ function DocGroupCard({ docType, docs, onView, onReplace, onDelete, replacingId,
       {expanded && (
         <div className="vf-doc-group-files">
           {docs.map((doc) => (
-            <div key={doc.id} className="vf-doc-group-file">
-              <button
-                type="button"
-                className={'vf-doc-group-file-main' + (selectedDocId === doc.id ? ' open' : '')}
-                onClick={() => setSelectedDocId((prev) => prev === doc.id ? null : doc.id)}
-              >
-                <span className="vf-doc-group-file-icon"><Icon.File /></span>
-                <div className="vf-doc-group-file-info">
-                  <span className="vf-doc-group-file-name" title={doc.originalFileName}>{doc.originalFileName}</span>
-                  <span className="vf-doc-group-file-meta">
-                    {doc.uploadedAt && <span>{doc.uploadedAt}</span>}
-                    <span className={'vf-doc-status-inline ' + doc.status}>{STATUS_LABEL[doc.status] || doc.status}</span>
-                  </span>
-                </div>
-                <span className={'vf-doc-file-chevron' + (selectedDocId === doc.id ? ' open' : '')}><Icon.Chevron /></span>
-              </button>
-              <div className="vf-doc-card-actions">
-                <button type="button" className="vf-doc-view-btn" onClick={() => onView(doc.id)} disabled={viewingId === doc.id}>
-                  {viewingId === doc.id ? 'Opening…' : 'View'}
-                </button>
-                <label className="vf-doc-replace-btn" title="Replace with a new file">
-                  {replacingId === doc.id ? 'Replacing…' : 'Edit'}
-                  <input type="file" accept="image/*,.pdf" onChange={(e) => { const f = e.target.files[0]; if (f) { onReplace(doc.id, f); e.target.value = ''; } }} disabled={replacingId === doc.id} hidden />
-                </label>
-                <button type="button" className="vf-doc-remove-btn" onClick={() => onDelete(doc.id)} disabled={deletingId === doc.id}>
-                  {deletingId === doc.id ? 'Removing…' : 'Remove'}
-                </button>
+            <button
+              key={doc.id}
+              type="button"
+              className="vf-doc-group-file-btn"
+              onClick={() => setDetailDoc(doc)}
+            >
+              <span className="vf-doc-group-file-icon"><Icon.File /></span>
+              <div className="vf-doc-group-file-info">
+                <span className="vf-doc-group-file-name" title={doc.originalFileName}>{doc.originalFileName}</span>
+                <span className="vf-doc-group-file-meta">
+                  {doc.uploadedAt && <span>{doc.uploadedAt}</span>}
+                  {doc.expiresAt && <span>· Expires {doc.expiresAt}</span>}
+                  <span className={'vf-doc-status-inline ' + doc.status}>{STATUS_LABEL[doc.status] || doc.status}</span>
+                </span>
               </div>
-              {selectedDocId === doc.id && (
-                <div className="vf-doc-group-details">
-                  <div className="vf-doc-detail-row">
-                    <span className="vf-doc-detail-label">Issuer</span>
-                    <span className={'vf-doc-detail-value' + (!doc.issuer ? ' empty' : '')}>{doc.issuer || '-'}</span>
-                  </div>
-                  <div className="vf-doc-detail-row">
-                    <span className="vf-doc-detail-label">Expiration / Date</span>
-                    <span className={'vf-doc-detail-value' + (!doc.expiresAt ? ' empty' : '')}>{doc.expiresAt || '-'}</span>
-                  </div>
-                </div>
-              )}
-            </div>
+              <span className="vf-doc-file-arrow">›</span>
+            </button>
           ))}
         </div>
+      )}
+
+      {detailDoc && (
+        <DocDetailModal
+          doc={detailDoc}
+          docType={docType}
+          onClose={() => setDetailDoc(null)}
+          onView={onView}
+          onReplace={onReplace}
+          onDelete={onDelete}
+          replacingId={replacingId}
+          deletingId={deletingId}
+          viewingId={viewingId}
+        />
       )}
     </div>
   );
@@ -818,18 +916,14 @@ function VerificationWizard({ documents, onCancel, onSubmitted, onDocumentUpload
       const resolvedFront = await resolveFile(frontFile, frontDocId, 'front.jpg');
       const resolvedBack = await resolveFile(backFile, backDocId, 'back.jpg');
 
-      // If new files were uploaded (not from existing docs), also save them to Documents
-      if (frontFile) {
-        const idType = ID_TYPES.find((t) => t.id === selectedType);
-        if (idType) {
-          try {
-            const newDoc = await uploadDocument({ documentType: idType.docType, file: frontFile });
-            onDocumentUploaded(newDoc);
-          } catch { /* non-blocking */ }
-        }
+      // Backend creates Document records for front/back and returns them in the response
+      const result = await submitVerification({ idType: selectedType, frontFile: resolvedFront, backFile: resolvedBack, selfieFile });
+
+      // Update the documents list from the backend response
+      if (Array.isArray(result.documents)) {
+        result.documents.forEach((doc) => onDocumentUploaded(doc));
       }
 
-      const result = await submitVerification({ idType: selectedType, frontFile: resolvedFront, backFile: resolvedBack, selfieFile });
       setLocalVerification(result);
 
       // Simulated progress for UI feedback

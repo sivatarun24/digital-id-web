@@ -38,7 +38,7 @@ describe('Wallet Page', () => {
   it('renders digital ID cards', async () => {
     await renderWallet();
     expect(screen.getByText('Test User')).toBeInTheDocument();
-    const cards = document.querySelectorAll('.wallet-card');
+    const cards = document.querySelectorAll('.wallet-card-face');
     expect(cards.length).toBeGreaterThan(0);
   });
 

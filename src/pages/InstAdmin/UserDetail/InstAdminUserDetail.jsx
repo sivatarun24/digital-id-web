@@ -134,6 +134,28 @@ export default function InstAdminUserDetail() {
                 </table>
               </div>
             )}
+
+            {user.connectedServices?.length > 0 && (
+              <div className="admin-detail-card">
+                <p className="admin-detail-card-title">Connected Services ({user.connectedServices.length})</p>
+                <table className="admin-table">
+                  <thead>
+                    <tr><th>Service</th><th>Connected</th><th>Last Used</th></tr>
+                  </thead>
+                  <tbody>
+                    {user.connectedServices.map(svc => (
+                      <tr key={svc.serviceSlug}>
+                        <td className="td-primary" style={{ textTransform: 'capitalize' }}>
+                          {svc.serviceSlug.replace(/_/g, ' ')}
+                        </td>
+                        <td>{svc.connectedAt || '—'}</td>
+                        <td>{svc.lastUsedAt || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </>
         )}
       </div>
