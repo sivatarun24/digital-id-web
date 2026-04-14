@@ -136,18 +136,23 @@ export default function VerifyIdentity() {
             const statusUpdate = await fetchVerificationStatus();
             if (statusUpdate.status !== 'pending') {
               setVerification(statusUpdate);
+              setIsAnalyzing(false);
               clearInterval(pollInterval);
             }
           } catch (pollErr) {
             console.error('Error polling verification status:', pollErr);
+            setIsAnalyzing(false);
+            clearInterval(pollInterval);
           }
         }, 3000); // Poll every 3 seconds
+      } else {
+        setIsAnalyzing(false);
       }
     } catch (err) {
       setSubmitError(err.message);
+      setIsAnalyzing(false);
     } finally {
       setSubmitting(false);
-      setIsAnalyzing(false);
     }
   }
 
