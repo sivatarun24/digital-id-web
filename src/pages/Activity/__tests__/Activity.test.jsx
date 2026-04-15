@@ -32,7 +32,7 @@ describe('Activity Page', () => {
 
   async function renderActivity() {
     renderAuthenticated(<Activity />);
-    await waitFor(() => expect(mockFetchActivity).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByText('Loading activity…')).not.toBeInTheDocument());
   }
 
   it('renders the page heading', async () => {

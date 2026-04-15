@@ -102,6 +102,9 @@ export default function Settings() {
   const [twoFALoading, setTwoFALoading] = useState(false);
   const [twoFAError, setTwoFAError] = useState('');
 
+  const [showLogoutAllModal, setShowLogoutAllModal] = useState(false);
+  const [logoutAllLoading, setLogoutAllLoading] = useState(false);
+
   const [marketingOptIn, setMarketingOptIn] = useState(user?.marketingOptIn ?? false);
   const [marketingLoading, setMarketingLoading] = useState(false);
 
@@ -247,6 +250,16 @@ export default function Settings() {
     setShow2FAModal(true);
   }
 
+  async function handleLogoutAll() {
+    setLogoutAllLoading(true);
+    try {
+      await logout();
+      navigate('/login', { replace: true });
+    } catch {
+      setLogoutAllLoading(false);
+    }
+  }
+
   async function handleMarketingToggle() {
     setMarketingLoading(true);
     const next = !marketingOptIn;
@@ -338,10 +351,16 @@ export default function Settings() {
               <span className="settings-icon"><Icon.Lock /></span>
               <div>
                 <span className="settings-label">Active Sessions</span>
-                <span className="settings-hint">View and manage devices signed in to your account</span>
+                <span className="settings-hint">Sign out of all devices at once</span>
               </div>
             </div>
-            <span className="settings-badge">1 device</span>
+            <button
+              type="button"
+              className="settings-action settings-action-danger"
+              onClick={() => { setShowLogoutAllModal(true); }}
+            >
+              Log out all
+            </button>
           </div>
         </div>
       </div>
@@ -511,6 +530,64 @@ export default function Settings() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showLogoutAllModal && (
+        <div className="settings-modal-backdrop" onClick={() => setShowLogoutAllModal(false)}>
+          <div className="settings-modal settings-modal-danger-enhanced" onClick={(e) => e.stopPropagation()}>
+            <div className="settings-modal-header">
+              <div className="settings-modal-hero">
+                <span className="settings-modal-danger-icon"><Icon.Lock /></span>
+                <div>
+                  <h3 className="settings-modal-title">Log Out All Sessions</h3>
+                  <p className="settings-modal-body">
+                    This will sign you out of every device, including this one.
+                    You'll need to sign in again to continue using Digital ID.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="settings-modal-close settings-modal-close-danger"
+                onClick={() => setShowLogoutAllModal(false)}
+                disabled={logoutAllLoading}
+                aria-label="Close logout all sessions modal"
+              >
+                ×
+              </button>
+            </div>
+            <div className="settings-session-info">
+              <div className="settings-session-row">
+                <span className="settings-session-label">Signed in as</span>
+                <span className="settings-session-value">{user?.email || user?.username}</span>
+              </div>
+              {user?.lastLoginAt && (
+                <div className="settings-session-row">
+                  <span className="settings-session-label">Last login</span>
+                  <span className="settings-session-value">{new Date(user.lastLoginAt).toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+            <div className="settings-modal-actions">
+              <button
+                type="button"
+                className="settings-modal-confirm-danger"
+                onClick={handleLogoutAll}
+                disabled={logoutAllLoading}
+              >
+                {logoutAllLoading ? 'Logging out…' : 'Log out everywhere'}
+              </button>
+              <button
+                type="button"
+                className="settings-action"
+                onClick={() => setShowLogoutAllModal(false)}
+                disabled={logoutAllLoading}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

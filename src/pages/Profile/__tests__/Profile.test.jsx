@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { screen } from '@testing-library/react';
-import { renderAuthenticated, MOCK_USER } from '../../../test/helpers';
+import { renderAuthenticated, renderWithProviders, MOCK_USER } from '../../../test/helpers';
 import Profile from '../index';
 
 describe('Profile Page', () => {
@@ -37,5 +37,12 @@ describe('Profile Page', () => {
   it('renders account details section', () => {
     renderAuthenticated(<Profile />);
     expect(screen.getByText('Account Details')).toBeInTheDocument();
+  });
+
+  it('shows skeleton placeholders when user is not yet loaded', () => {
+    renderWithProviders(<Profile />, { auth: { user: null, isAuthed: true } });
+    const skeletons = document.querySelectorAll('.skeleton');
+    expect(skeletons.length).toBeGreaterThan(0);
+    expect(screen.queryByText('Personal Information')).not.toBeInTheDocument();
   });
 });

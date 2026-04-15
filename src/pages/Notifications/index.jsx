@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import Skeleton from '../../components/common/Skeleton';
 import {
   fetchNotifications,
   toggleRead,
@@ -382,9 +383,18 @@ export default function Notifications() {
       </div>
 
       {loading && (
-        <div className="notif-loading">
-          <div className="notif-spinner" />
-          <span>Loading notifications…</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} style={{ background: 'var(--surface)', borderRadius: 'var(--r)', padding: '16px', border: '1px solid var(--border)', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <Skeleton variant="circle" width={36} height={36} style={{ flexShrink: 0 }} />
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <Skeleton width="40%" height={12} />
+                <Skeleton width="90%" height={14} />
+                <Skeleton width="60%" height={14} />
+                <Skeleton width="25%" height={11} />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
